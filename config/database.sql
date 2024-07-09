@@ -1,0 +1,13 @@
+CREATE TABLE users (
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    username VARCHAR(80) NOT NULL,
+    adminstatus BOOLEAN DEFAULT false,
+    password VARCHAR(100) NOT NULL
+    -- CHECK (LENGTH(password) >= 8)
+);
+
+CREATE TABLE workers (
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    FIO VARCHAR(200) NOT NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+)
