@@ -172,3 +172,21 @@ exports.deleteWorker = asyncHandler(async (req, res, next) => {
         data: "Delete"
     })
 })
+
+// search worker 
+exports.searchWorker = asyncHandler(async (req, res, next) => {
+    const {fio} = req.body
+    let worker = null
+    if(!req.user.adminstatus){ 
+        worker = await pool.query(`SELECT * FROM workers WHERE fio ILIKE '%' || $1 || '%' AND user_id = $2`, [fio, req.user.id])
+        return res.status(200).json({
+            success: true,
+            data: worker.rows
+        })
+    }
+    worker = await pool.query(`SELECT * FROM workers WHERE fio ILIKE '%' || $1 || '%'`, [fio])
+    return res.status(200).json({
+        success: true,
+        data: worker.rows
+    })
+})

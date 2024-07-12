@@ -92,34 +92,66 @@ exports.create = asyncHandler(async (req, res, next) => {
     );
     for(let battalion of forBattalion){
         const battalionId = await pool.query(`SELECT id FROM users WHERE username = $1`, [battalion.name])
-        await pool.query(`INSERT INTO tasks (
-            user_id, 
-            contract_id,
-            contractnumber,
-            clientname,
-            taskDate,
-            workernumber,
-            timemoney,
-            tasktime,
-            allmoney,
-            money,
-            discountmoney ,
-            battalionname
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
-                battalionId.rows[0].id,
-                contract.rows[0].id,
-                contractNumber,
-                clientName,
+        if(battalion.name === "Toshkent Shahar IIBB" || battalion.name === "98162" || battalion.name === "98157" ){
+            await pool.query(`INSERT INTO iib_tasks (
+                user_id, 
+                contract_id,
+                contractnumber,
+                clientname,
                 taskDate,
-                battalion.workerNumber,
-                battalion.oneTimeMoney,
-                battalion.taskTime,
-                battalion.allMoney,
-                battalion.money,
-                battalion.discountMoney,
-                battalion.name
-            ])
+                workernumber,
+                timemoney,
+                tasktime,
+                allmoney,
+                money,
+                discountmoney ,
+                battalionname
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
+                    battalionId.rows[0].id,
+                    contract.rows[0].id,
+                    contractNumber,
+                    clientName,
+                    taskDate,
+                    battalion.workerNumber,
+                    battalion.oneTimeMoney,
+                    battalion.taskTime,
+                    battalion.allMoney,
+                    battalion.money,
+                    battalion.discountMoney,
+                    battalion.name
+                ])
+        }else{
+            await pool.query(`INSERT INTO tasks (
+                user_id, 
+                contract_id,
+                contractnumber,
+                clientname,
+                taskDate,
+                workernumber,
+                timemoney,
+                tasktime,
+                allmoney,
+                money,
+                discountmoney ,
+                battalionname
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
+                    battalionId.rows[0].id,
+                    contract.rows[0].id,
+                    contractNumber,
+                    clientName,
+                    taskDate,
+                    battalion.workerNumber,
+                    battalion.oneTimeMoney,
+                    battalion.taskTime,
+                    battalion.allMoney,
+                    battalion.money,
+                    battalion.discountMoney,
+                    battalion.name
+                ])
+        }
+        
     }
 
     return res.status(201).json({
@@ -128,6 +160,8 @@ exports.create = asyncHandler(async (req, res, next) => {
     })
 
 })
+
+
 
 // get all contracts 
 exports.getAllcontracts = asyncHandler(async (req, res, next) => {
@@ -178,3 +212,21 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
     })
 })
 
+// payment contract 
+exports.paymentContract = asyncHandler(async (req, res, next) => {
+    const contract = await pool.query(`UPDATE contracts SET ispay = $1 WHERE id = $2 RETURNING id`, [true, req.params.id])
+    const tasks = await pool.query(`SELECT done FROM tasks WHERE contract_id = $1`, [contract.rows[0].id])
+    
+    for(let task of tasks.rows ){
+        if(!task.done){
+            return next(new ErrorResponse("ushbu shartnoma uchun hali xodim biriktrilmadi", 403))
+        }
+    }
+
+    await pool.query(`UPDATE worker_tasks SET ispay = $1 WHERE contract_id = $2`, [true, contract.rows[0].id])
+    await pool.query(`UPDATE iib_tasks SET ispay = $1, WHERE contract_id = $2`, true, contract.rows[0].id)
+    return res.status(200).json({
+        success: true,
+        data: "Muvaffiqiyatli amalga oshirildi"
+    })
+})

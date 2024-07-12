@@ -9,7 +9,8 @@ const {
     getElementById,
     getAllBatalyon,
     updateWorker,
-    deleteWorker
+    deleteWorker,
+    searchWorker
 } = require('../controller/worker.controller')
 
 router.post("/create", protect, create)
@@ -18,5 +19,6 @@ router.get('/get/one/:id', protect, getElementById)
 router.get('/get/all/batalyon', protect, getAllBatalyon)
 router.put("/update/:id", protect, updateWorker)
 router.delete("/delete/:id", protect, deleteWorker)
+router.post('/search', protect, searchWorker)
 
 module.exports = router
