@@ -80,7 +80,7 @@ exports.getAllBatalyon = asyncHandler(async (req, res, next) => {
     if(!req.user.adminstatus){
         return next(new ErrorResponse("siz admin emassiz", 403))
     }
-    const batalyons = await pool.query(`SELECT username FROM users WHERE adminstatus = $1
+    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1
         `, [false])
     res.status(200).json({
         success: true,
@@ -190,3 +190,31 @@ exports.searchWorker = asyncHandler(async (req, res, next) => {
         data: worker.rows
     })
 })
+
+// date  by filter 
+exports.dateByFilter = asyncHandler(async (req, res, next) => {
+    
+// get element by id 
+exports.getElementById = asyncHandler(async (req, res, next) => {
+    let worker = null
+    if(req.user.adminstatus){
+        worker = await pool.query(`
+            SELECT workers.fio, workers.id, users.username
+            FROM workers
+            JOIN users ON workers.user_id = users.id
+            WHERE workers.id = $1
+        `, [req.params.id])
+    }
+    else if(!req.user.adminstatus){
+        worker = await pool.query(`SELECT fio, id FROM workers WHERE id = $1
+            `, [req.params.id])
+    }
+    res.status(200).json({
+        success: true,
+        data: worker.rows[0]
+    })
+})
+})
+
+// get batalyon 
+exports.getAllBatalyon 
