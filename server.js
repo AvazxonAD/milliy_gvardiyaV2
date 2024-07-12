@@ -16,6 +16,9 @@ app.use('/auth', require('./router/auth.router'))
 app.use('/worker', require('./router/worker.router'))
 app.use('/bxm', require('./router/bxm.router'))
 app.use('/contract', require("./router/contract.router"))
+app.use('/task', require('./router/task.router'))
+app.use('/worker_task', require('./router/worker.task.router'))
+
 
 app.use(require('./middleware/errorHandler'))
 

@@ -1,13 +1,15 @@
 const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const {
-    returnDate
+    returnDate,
+    returnStringDate
 } = require('../utils/date.function')
 
 const {
     checkBattailonsIsNull,
     returnWorkerNumberAndAllMoney,
-    returnBattalion
+    returnBattalion,
+    blockTasks
 } = require('../utils/contract.functions');
 const pool = require("../config/db");
 
@@ -48,7 +50,6 @@ exports.create = asyncHandler(async (req, res, next) => {
 
     const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, battalions, discount, taskTime)
     const forBattalion = returnBattalion(oneTimeMoney, battalions, discount, taskTime)
-
     const contract = await pool.query(
         `INSERT INTO contracts (
             contractNumber, 
@@ -99,8 +100,13 @@ exports.create = asyncHandler(async (req, res, next) => {
             taskDate,
             workernumber,
             timemoney,
-            tasktime )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [
+            tasktime,
+            allmoney,
+            money,
+            discountmoney ,
+            battalionname
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
                 battalionId.rows[0].id,
                 contract.rows[0].id,
                 contractNumber,
@@ -108,7 +114,11 @@ exports.create = asyncHandler(async (req, res, next) => {
                 taskDate,
                 battalion.workerNumber,
                 battalion.oneTimeMoney,
-                battalion.taskTime
+                battalion.taskTime,
+                battalion.allMoney,
+                battalion.money,
+                battalion.discountMoney,
+                battalion.name
             ])
     }
 
@@ -121,24 +131,50 @@ exports.create = asyncHandler(async (req, res, next) => {
 
 // get all contracts 
 exports.getAllcontracts = asyncHandler(async (req, res, next) => {
-    const contracts = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts`)
+    let  contracts = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts`)
+    let result  = contracts.rows.map(contract => {
+        contract.contractdate = returnStringDate(contract.contractdate)
+        return contract  
+    })
     
     return res.status(200).json({
         success: true,
-        data: contracts.rows
+        data: result
     })
 })
 
 // get  contract and all tasks 
 exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
-    const contract = await pool.query(`SELECT * FROM contracts WHERE contracts.id = $1
+    let contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE contracts.id = $1
     `, [req.params.id])
-    const tasks = await pool.query(`SELECT * FROM tasks WHERE contract_id = $1
-        `, [req.params.id])
     
+    let resultContract  = contract.rows.map(contract => {
+        contract.contractdate = returnStringDate(contract.contractdate)
+        return contract  
+    })
+
+    let  tasks = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE contract_id = $1
+        `, [req.params.id])
+    const test = blockTasks(tasks.rows)
+    if(test.length >= 1){
+        for(let task of test ){
+            await pool.query(`UPDATE tasks SET inprogress = $1, done = $2, notdone = $3
+                WHERE id = $4
+                `, [false, false, true, task.id])
+        }
+    }
+    let  resulttasks = await pool.query(`SELECT id, battalionname, taskdate, workernumber, inprogress, done, notdone  FROM tasks WHERE contract_id = $1
+    `, [req.params.id])
+    
+    
+    let result = resulttasks.rows.map(task => {
+            task.taskdate = returnStringDate(task.taskdate)
+            return task
+    })
     return res.status(200).json({
         success: true,
-        data: contract.rows[0],
-        tasks: tasks.rows
+        data: resultContract,
+        tasks: result
     })
 })
+

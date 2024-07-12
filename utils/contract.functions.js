@@ -39,19 +39,46 @@ exports.returnWorkerNumberAndAllMoney = (oneTimeMoney, battalions, discount, tas
 exports.returnBattalion = (oneTimeMoney, battalions, discount, taskTime) => {
     let result = [];
     
-    if (discount) {
-        oneTimeMoney = Math.round(((oneTimeMoney * (1 - discount / 100)) * 100)) / 100
-    }
-    
     for (let battalion of battalions) {
+        let allMoney = 0;
+        let discountMoney = null;
+        let money = oneTimeMoney * taskTime * battalion.workerNumber;
+        if (discount) {
+            discountMoney = money * (discount / 100);
+            discountMoney += Math.round(discountMoney * 100) / 100     
+            allMoney = money - discountMoney      
+        }else{
+            allMoney = money
+        }
 
         result.push({
             name: battalion.name,
             oneTimeMoney,
+            allMoney,
+            discountMoney,
+            money,
             workerNumber: battalion.workerNumber,
             taskTime            
         })
     }
 
     return result;
+}
+
+// block tasks 
+exports.blockTasks = (tasks) => {
+    result = []
+    for(let task of tasks){
+        if(task.inprogress){
+            const dateObject = new Date(task.taskdate)
+            dateObject.setDate(dateObject.getDate() + 2);
+            if(dateObject.getTime() < new Date().getTime()){
+                result.push({
+                    id: task.id, 
+                    notdone: true
+                })
+            }
+        }
+    }
+    return result
 }

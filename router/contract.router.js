@@ -6,11 +6,11 @@ const protect = require('../middleware/auth')
 const {
     create,
     getAllcontracts,
-    getContractAndTasks
+    getContractAndTasks,
 } = require('../controller/contract.controller')
 
 router.post("/create", protect, create)
 router.get("/get", protect, getAllcontracts)
-router.get('/get/:id', protect, getContractAndTasks)
+router.get('/get/contract/:id', protect, getContractAndTasks)
 
 module.exports = router

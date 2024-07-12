@@ -41,6 +41,7 @@ CREATE TABLE contracts (
 CREATE TABLE tasks (
     id BIGSERIAL NOT NULL  PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
+    battalionname VARCHAR(200) NOT NULL,
     contract_id INTEGER REFERENCES contracts(id),
     contractNumber INTEGER NOT NULL,
     clientName VARCHAR(300) NOT NULL,
@@ -48,7 +49,23 @@ CREATE TABLE tasks (
     workerNumber INTEGER NOT NULL,
     timeMoney INTEGER NOT NULL,
     taskTime INTEGER NOT NULL,
+    allMoney INTEGER NOT NULL,
+    discountMoney INTEGER,
+    money INTEGER NOT NULL,
     done BOOLEAN DEFAULT false,
     inProgress BOOLEAN DEFAULT true,
     notDone BOOLEAN DEFAULT false
 );
+
+CREATE TABLE worker_tasks (
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    worker_id INTEGER REFERENCES workers(id), 
+    onetimemoney INTEGER NOT NULL,
+    contract_id INTEGER REFERENCES contracts(id),
+    tasktime INTEGER NOT NULL,
+    summa NUMERIC NOT NULL,
+    taskdate DATE NOT NULL,
+    clientname VARCHAR(200) NOT NULL,
+    isPay BOOLEAN DEFAULT false,
+    address VARCHAR(400) NOT NULL
+)
