@@ -60,6 +60,8 @@ CREATE TABLE tasks (
 CREATE TABLE worker_tasks (
     id BIGSERIAL NOT NULL PRIMARY KEY,
     worker_id INTEGER REFERENCES workers(id), 
+    worker_name VARCHAR(300) NOT NULL,
+    task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE, 
     onetimemoney INTEGER NOT NULL,
     contract_id INTEGER REFERENCES contracts(id) ON DELETE CASCADE,
     tasktime INTEGER NOT NULL,

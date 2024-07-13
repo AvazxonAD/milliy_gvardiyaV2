@@ -1,12 +1,13 @@
 const express = require('express')
 const app = express()
-
+const cors = require('cors')
 
 app.use(express.json())
 app.use(express.urlencoded({extended: false}))
 
 require('dotenv').config()
 require('colors')
+app.use(cors())
 
 require('./utils/createAdmin')()
 require("./utils/createBxm")()

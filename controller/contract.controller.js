@@ -238,6 +238,24 @@ exports.toPrint = asyncHandler(async (req, res, next) => {
     })
 })
 
+// delete contract 
+exports.deleteContract = asyncHandler(async (req, res, next) => {
+    const contract  = await pool.query(`DELETE FROM contracts WHERE id = $1 RETURNING id `, [req.params.id])
+    if(!contract.rows[0]){
+        return next(new ErrorResponse("server xatolik ochirib bolmadi", 500))
+    }
+    return res.status(200).json({
+        success: true,
+        data: "DELETE"
+    })
+})
+
+// task's worker 
+exports.taskOfWorker = asyncHandler(async (req, res, next) => {
+    
+})
+
+
 
 // payment contract 
 exports.paymentContract = asyncHandler(async (req, res, next) => {

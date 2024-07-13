@@ -25,7 +25,7 @@ exports.getAllTasks = asyncHandler(async (req, res, next) => {
         FROM tasks 
         WHERE user_id = $1
         `, [req.user.id])
-
+    console.log(tasks.rows)
     let result = tasks.rows.map(task => {
         task.taskdate = returnStringDate(task.taskdate)
         return task

@@ -30,10 +30,10 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
     for(let worker of workers){
         let contract = await pool.query(`SELECT ispay, address FROM contracts WHERE id = $1`, [task.rows[0].contract_id])
         let ispay = contract.rows[0].ispay
-        const id = await pool.query(`SELECT id FROM workers WHERE fio = $1 AND user_id = $2`, [worker.fio, req.user.id])
+        const id = await pool.query(`SELECT id, fio FROM workers WHERE fio = $1 AND user_id = $2`, [worker.fio, req.user.id])
         await pool.query(`
-            INSERT INTO worker_tasks (worker_id, contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            INSERT INTO worker_tasks (worker_id,  contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_fio)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             `, [
                 id.rows[0].id, 
                 task.rows[0].contract_id, 
@@ -43,7 +43,9 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
                 task.rows[0].clientname,
                 ispay,
                 (task.rows[0].allmoney / task.rows[0].workernumber) / task.rows[0].tasktime,
-                contract.rows[0].address
+                contract.rows[0].address,
+                task.rows[0].id,
+                id.rows[0].fio
             ])
         await pool.query(`UPDATE tasks SET inprogress = $1, done = $2, notdone = $3
             WHERE id = $4
