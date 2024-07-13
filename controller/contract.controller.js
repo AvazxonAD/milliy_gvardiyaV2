@@ -165,7 +165,10 @@ exports.create = asyncHandler(async (req, res, next) => {
 
 // get all contracts 
 exports.getAllcontracts = asyncHandler(async (req, res, next) => {
-    let  contracts = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts`)
+    const limit = parseInt(req.query.limit) || 10 
+    const page = parseInt(req.query.page) || 1
+
+    let  contracts = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts OFFSET $1 `)
     let result  = contracts.rows.map(contract => {
         contract.contractdate = returnStringDate(contract.contractdate)
         return contract  
