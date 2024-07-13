@@ -59,7 +59,7 @@ exports.create = asyncHandler(async (req, res, next) => {
             clientMFO, 
             clientAccount, 
             clientSTR, 
-            treasuryAccount, 
+            treasuryAccount,
             timeLimit, 
             address, 
             discount,
@@ -179,7 +179,7 @@ exports.getAllcontracts = asyncHandler(async (req, res, next) => {
 
 // get  contract and all tasks 
 exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
-    let contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE contracts.id = $1
+    let contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address, ispay FROM contracts WHERE contracts.id = $1
     `, [req.params.id])
     
     let resultContract  = contract.rows.map(contract => {
@@ -288,7 +288,7 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
         contract.contractdate = returnStringDate(contract.contractdate)
         return contract  
     })
-    
+
     return res.status(200).json({
         success: true,
         data: result
@@ -298,17 +298,15 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
 
 // payment contract 
 exports.paymentContract = asyncHandler(async (req, res, next) => {
-    const contract = await pool.query(`UPDATE contracts SET ispay = $1 WHERE id = $2 RETURNING id`, [true, req.params.id])
-    const tasks = await pool.query(`SELECT done FROM tasks WHERE contract_id = $1`, [contract.rows[0].id])
-    
-    for(let task of tasks.rows ){
-        if(!task.done){
-            return next(new ErrorResponse("ushbu shartnoma uchun hali xodim biriktrilmadi", 403))
-        }
+    if(!req.user.adminstatus){
+        return next(new ErrorResponse("siz admin emassiz", 403))
     }
+    const contract = await pool.query(`UPDATE contracts SET ispay = $1 WHERE id = $2 RETURNING id`, [true, req.params.id])
+    
 
     await pool.query(`UPDATE worker_tasks SET ispay = $1 WHERE contract_id = $2`, [true, contract.rows[0].id])
-    await pool.query(`UPDATE iib_tasks SET ispay = $1, WHERE contract_id = $2`, true, contract.rows[0].id)
+    await pool.query(`UPDATE iib_tasks SET ispay = $1 WHERE contract_id = $2`, [true, contract.rows[0].id])
+    
     return res.status(200).json({
         success: true,
         data: "Muvaffiqiyatli amalga oshirildi"
