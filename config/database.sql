@@ -25,7 +25,7 @@ CREATE TABLE contracts (
     clientMFO INTEGER,
     clientAccount INTEGER,
     clientSTR INTEGER,
-    treasuryAccount INTEGER,
+    treasuryAccount VARCHAR(100),
     timeLimit VARCHAR(500) NOT NULL,
     address VARCHAR(500) NOT NULL,
     discount NUMERIC,

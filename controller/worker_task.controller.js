@@ -23,7 +23,7 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
     for(let worker of workers){
         const test = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2`, [worker.fio, req.user.id])
         if(!test.rows[0]){
-            return next(new ErrorResponse("server xatolik xodim topilmadi", 403))
+            return next(new ErrorResponse(`server xatolik xodim topilmadi: ${worker.fio}`, 403))
         }
     }
 
@@ -32,8 +32,8 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
         let ispay = contract.rows[0].ispay
         const id = await pool.query(`SELECT id, fio FROM workers WHERE fio = $1 AND user_id = $2`, [worker.fio, req.user.id])
         await pool.query(`
-            INSERT INTO worker_tasks (worker_id,  contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_fio)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            INSERT INTO worker_tasks (worker_id,  contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_name)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             `, [
                 id.rows[0].id, 
                 task.rows[0].contract_id, 
@@ -65,7 +65,6 @@ exports.getAlltasksOfWorker = asyncHandler(async (req, res, next) => {
         return task
     })
     const allmoney = getWorkerAllMoney(tasks.rows)
-    console.log(tasks.rows)
     return res.status(200).json({
         success: true,
         data: result,

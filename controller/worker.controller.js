@@ -80,7 +80,7 @@ exports.getAllBatalyon = asyncHandler(async (req, res, next) => {
     if(!req.user.adminstatus){
         return next(new ErrorResponse("siz admin emassiz", 403))
     }
-    const batalyons = await pool.query(`SELECT username FROM users WHERE adminstatus = $1
+    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1
         `, [false])
     res.status(200).json({
         success: true,

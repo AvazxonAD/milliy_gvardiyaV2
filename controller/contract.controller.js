@@ -79,7 +79,7 @@ exports.create = asyncHandler(async (req, res, next) => {
             clientMFO, 
             clientAccount, 
             clientSTR, 
-            parseInt(treasuryAccount), 
+            treasuryAccount, 
             timeLimit, 
             address,  
             discount,
@@ -252,7 +252,20 @@ exports.deleteContract = asyncHandler(async (req, res, next) => {
 
 // task's worker 
 exports.taskOfWorker = asyncHandler(async (req, res, next) => {
-    
+    if(!req.user.adminstatus){
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+    let workers = null 
+    if(req.query.task){
+        workers = await pool.query(`SELECT worker_name FROM worker_tasks WHERE task_id  = $1`, [req.params.id])
+    }
+    if(req.query.contract){
+        workers = await pool.query(`SELECT worker_name FROM worker_tasks WHERE contract_id = $1`, [req.params.id])
+    }
+    return res.status(200).json({
+        success: true,
+        data: workers.rows
+    })
 })
 
 
