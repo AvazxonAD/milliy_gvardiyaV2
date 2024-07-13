@@ -5,10 +5,12 @@ const protect = require('../middleware/auth')
 
 const {
     pushWorker,
-    getAlltasksOfWorker
+    getAlltasksOfWorker,
+    filterByDate
 } = require('../controller/worker_task.controller')
 
 router.post('/push/worker/:id', protect, pushWorker)
 router.get("/tasks/of/worker/:id", protect, getAlltasksOfWorker)
+router.post('/filter/by/date/:id', protect, filterByDate)
 
 module.exports = router

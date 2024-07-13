@@ -65,7 +65,7 @@ CREATE TABLE worker_tasks (
     onetimemoney INTEGER NOT NULL,
     contract_id INTEGER REFERENCES contracts(id) ON DELETE CASCADE,
     tasktime INTEGER NOT NULL,
-    summa NUMERIC NOT NULL,
+    summa INTEGER NOT NULL,
     taskdate DATE NOT NULL,
     clientname VARCHAR(200) NOT NULL,
     isPay BOOLEAN DEFAULT false,

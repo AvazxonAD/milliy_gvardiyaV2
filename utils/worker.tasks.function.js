@@ -1,7 +1,6 @@
 exports.getWorkerAllMoney = (tasks) => {
     let AllMoney = 0
     for(let task of tasks){
-        console.log(typeof task.summa)
         AllMoney = AllMoney + task.summa
     }
     return AllMoney

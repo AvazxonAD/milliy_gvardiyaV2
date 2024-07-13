@@ -59,7 +59,8 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
 
 // get all tasks of worker 
 exports.getAlltasksOfWorker = asyncHandler(async (req, res, next) => {
-    const tasks = await pool.query(`SELECT * FROM worker_tasks WHERE worker_id = $1`, [req.params.id])
+    const tasks = await pool.query(`SELECT taskdate, onetimemoney, tasktime, summa, clientname, ispay, address 
+        FROM worker_tasks WHERE worker_id = $1`, [req.params.id])
     let result = tasks.rows.map(task => {
         task.taskdate = returnStringDate(task.taskdate)
         return task
@@ -74,7 +75,11 @@ exports.getAlltasksOfWorker = asyncHandler(async (req, res, next) => {
 })
 
 // filter by date 
-exports.filterTime = asyncHandler(async (req, res, next) => {
+exports.filterByDate = asyncHandler(async (req, res, next) => {
+    if(!req.user.adminstatus){
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+
     let {date1, date2} = req.body
     date1 = returnDate(date1)
     date2 = returnDate(date2)
@@ -83,12 +88,12 @@ exports.filterTime = asyncHandler(async (req, res, next) => {
     }
 
     const tasks = await pool.query(`SELECT * FROM worker_tasks WHERE worker_id = $1 AND taskdate BETWEEN $2 AND $3`, [req.params.id, date1, date2])
+    
     let result = tasks.rows.map(task => {
         task.taskdate = returnStringDate(task.taskdate)
         return task
     })
     const allmoney = getWorkerAllMoney(tasks.rows)
-    console.log(tasks.rows)
     return res.status(200).json({
         success: true,
         data: result,
