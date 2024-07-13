@@ -36,6 +36,9 @@ exports.create = asyncHandler(async (req, res, next) => {
 
 // get all worker
 exports.getAllworker = asyncHandler(async (req, res, next) => {
+    const limit = parseInt(req.query.limit) || 10 
+    const page = parseInt(req.query.page) || 1
+
     let workers = null
     if(req.user.adminstatus){
         workers = await pool.query(`
@@ -43,10 +46,16 @@ exports.getAllworker = asyncHandler(async (req, res, next) => {
             FROM workers
             JOIN users ON workers.user_id = users.id
             WHERE users.id = $1
-        `, [req.params.id])
+            OFFSET $2
+            LIMIT $3
+        `, [req.params.id, (page - 1) * limit, limit ])
     }
     else if(!req.user.adminstatus){
-        workers = await pool.query(`SELECT * FROM workers WHERE user_id = $1`, [req.user.id])
+        workers = await pool.query(`SELECT * FROM workers 
+            WHERE user_id = $1
+            OFFSET $2
+            LIMIT $3
+            `, [req.user.id, (page - 1) * limit, limit ])
     }
     return res.status(200).json({
         success: true,
