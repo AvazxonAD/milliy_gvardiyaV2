@@ -268,6 +268,32 @@ exports.taskOfWorker = asyncHandler(async (req, res, next) => {
     })
 })
 
+// filter by date
+exports.filterByDate = asyncHandler(async (req, res, next) => {
+    if(!req.user.adminstatus){
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+
+    let {date1, date2} = req.body
+    date1 = returnDate(date1)
+    date2 = returnDate(date2)
+    if(!date1 || !date2){
+       return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
+    }
+
+    let  contracts = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts
+        WHERE contractdate BETWEEN $1 AND $2`, [date1, date2])
+
+    let result  = contracts.rows.map(contract => {
+        contract.contractdate = returnStringDate(contract.contractdate)
+        return contract  
+    })
+    
+    return res.status(200).json({
+        success: true,
+        data: result
+    })
+})
 
 
 // payment contract 
