@@ -59,6 +59,8 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
 
 // get all tasks of worker 
 exports.getAlltasksOfWorker = asyncHandler(async (req, res, next) => {
+    const worker = await pool.query(`SELECT fio FROM workers WHERE id = $1`, [req.params.id])
+
     const tasks = await pool.query(`SELECT taskdate, onetimemoney, tasktime, summa, clientname, ispay, address 
         FROM worker_tasks WHERE worker_id = $1`, [req.params.id])
     let result = tasks.rows.map(task => {
@@ -69,7 +71,8 @@ exports.getAlltasksOfWorker = asyncHandler(async (req, res, next) => {
     return res.status(200).json({
         success: true,
         data: result,
-        allmoney
+        allmoney,
+        worker: worker.rows
     })
 
 })
