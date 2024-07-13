@@ -40,6 +40,7 @@ exports.getAllworker = asyncHandler(async (req, res, next) => {
     const page = parseInt(req.query.page) || 1
 
     let workers = null
+    let total 
     if(req.user.adminstatus){
         workers = await pool.query(`
             SELECT workers.FIO, workers.id, users.username 
@@ -49,16 +50,24 @@ exports.getAllworker = asyncHandler(async (req, res, next) => {
             OFFSET $2
             LIMIT $3
         `, [req.params.id, (page - 1) * limit, limit ])
+        total = await pool.query(`SELECT COUNT(id) AS total FROM workers WHERE user_id = $1`, [req.params.id])
     }
     else if(!req.user.adminstatus){
         workers = await pool.query(`SELECT * FROM workers 
             WHERE user_id = $1
             OFFSET $2
             LIMIT $3
-            `, [req.user.id, (page - 1) * limit, limit ])
+        `, [req.user.id, (page - 1) * limit, limit ])    
+        total = await pool.query(`SELECT COUNT(id) AS total FROM workers WHERE user_id = $1`, [req.user.id])
     }
+
     return res.status(200).json({
         success: true,
+        pageCount: Math.ceil(total.rows[0].total / limit),
+        count: total.rows[0].total,
+        currentPage: page,
+        nextPage: Math.ceil(total.rows[0].total / limit) < page + 1 ? null : page + 1,
+        backPage: page === 1 ? null : page - 1,
         data: workers.rows
     })
 })

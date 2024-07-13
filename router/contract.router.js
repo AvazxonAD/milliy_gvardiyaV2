@@ -11,7 +11,8 @@ const {
     deleteContract,
     taskOfWorker,
     filterByDate,
-    paymentContract
+    paymentContract,
+    update
 } = require('../controller/contract.controller')
 
 router.post("/create", protect, create)
@@ -22,5 +23,6 @@ router.delete('/delete/:id', protect, deleteContract)
 router.get('/print/task/worker/:id', protect, taskOfWorker)
 router.post('/filter/by/date', protect, filterByDate)
 router.get('/payment/contract/:id', protect, paymentContract)
+router.put('/update/:id', protect, update)
 
 module.exports = router
