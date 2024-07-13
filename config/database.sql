@@ -84,5 +84,5 @@ CREATE TABLE iib_tasks (
     allMoney INTEGER NOT NULL,
     discountMoney INTEGER,
     money INTEGER NOT NULL,
-    isPay BOOLEAN NOT NULL
+    isPay BOOLEAN DEFAULT false
 );

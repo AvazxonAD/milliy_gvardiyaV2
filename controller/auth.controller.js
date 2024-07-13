@@ -11,6 +11,11 @@ exports.login = asyncHandler(async (req, res, next) => {
     if(!username || !password){
         return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
     }
+    
+    if(username === "Toshkent Shahar IIBB" || username === "98162" || username === "98157"){
+        return next(new ErrorResponse("ushbu username bilan royhatdan otib bolmaydi", 400))
+    }
+
     const user = await pool.query(`SELECT * FROM users WHERE username = $1`, [username])
     if(!user.rows[0]){
         return next(new ErrorResponse("username yoki password xato kiritildi", 403))

@@ -79,7 +79,7 @@ exports.create = asyncHandler(async (req, res, next) => {
             clientMFO, 
             clientAccount, 
             clientSTR, 
-            treasuryAccount, 
+            parseInt(treasuryAccount), 
             timeLimit, 
             address,  
             discount,
@@ -211,6 +211,33 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
         tasks: result
     })
 })
+
+// to print 
+exports.toPrint = asyncHandler(async (req, res, next) => {
+    let tasksResult = []
+    const contract = await pool.query(`SELECT * FROM contracts WHERE id = $1`, [req.params.id])
+    let resultContract  = contract.rows.map(contract => {
+        contract.contractdate = returnStringDate(contract.contractdate)
+        return contract  
+    })
+
+    const tasks = await pool.query(`SELECT id, battalionname, workernumber, timemoney, tasktime, allmoney, money, discountmoney FROM tasks WHERE contract_id = $1`, [contract.rows[0].id])
+    const iib_tasks = await pool.query(`SELECT id,  battalionname, workernumber, timemoney, tasktime, allmoney, money, discountmoney FROM iib_tasks WHERE contract_id = $1`, [contract.rows[0].id])
+    
+    for(let task of tasks.rows){
+        tasksResult.push(task)
+    }
+    for(let task of iib_tasks.rows){
+        tasksResult.push(task)
+    }
+
+    return res.status(200).json({
+        success: true,
+        data: resultContract,
+        tasks: tasksResult
+    })
+})
+
 
 // payment contract 
 exports.paymentContract = asyncHandler(async (req, res, next) => {

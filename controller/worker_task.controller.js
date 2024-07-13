@@ -71,3 +71,27 @@ exports.getAlltasksOfWorker = asyncHandler(async (req, res, next) => {
     })
 
 })
+
+// filter by date 
+exports.filterTime = asyncHandler(async (req, res, next) => {
+    let {date1, date2} = req.body
+    date1 = returnDate(date1)
+    date2 = returnDate(date2)
+    if(!date1 || !date2){
+       return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
+    }
+
+    const tasks = await pool.query(`SELECT * FROM worker_tasks WHERE worker_id = $1 AND taskdate BETWEEN $2 AND $3`, [req.params.id, date1, date2])
+    let result = tasks.rows.map(task => {
+        task.taskdate = returnStringDate(task.taskdate)
+        return task
+    })
+    const allmoney = getWorkerAllMoney(tasks.rows)
+    console.log(tasks.rows)
+    return res.status(200).json({
+        success: true,
+        data: result,
+        allmoney
+    })
+
+})
