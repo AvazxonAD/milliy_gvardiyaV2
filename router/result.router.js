@@ -4,10 +4,11 @@ const router = Router()
 const protect = require('../middleware/auth')
 
 const { 
-    getForResultPageWorkers,
-
+    resultCreate,
+    getAllCommand
 } = require('../controller/result.controller')
 
-router.post("/get/for/workers", protect, getForResultPageWorkers)
+router.post("/create", protect, resultCreate)
+router.get('/get/command', protect, getAllCommand)
 
 module.exports = router

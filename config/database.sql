@@ -14,7 +14,8 @@ CREATE TABLE commands (
     id BIGSERIAL NOT NULL PRIMARY KEY,
     commanddate DATE NOT NULL,
     date1 DATE NOT NULL,
-    date2 DATE NOT NUll
+    date2 DATE NOT NUll,
+    commandnumber INTEGER NOT NULL
 )
 
 CREATE TABLE workers (
