@@ -9,7 +9,8 @@ const {
     checkBattailonsIsNull,
     returnWorkerNumberAndAllMoney,
     returnBattalion,
-    blockTasks
+    blockTasks,
+    checkDateWithNowDate
 } = require('../utils/contract.functions');
 const pool = require("../config/db");
 
@@ -178,48 +179,49 @@ exports.update = asyncHandler(async (req, res, next) => {
         taskTime,
         battalions,
         discount
-    } = req.body
-    if(!contractNumber || !contractDate ||  !clientName || !timeLimit || !address || !taskDate || !taskTime){
-        return next(new ErrorResponse("sorovlar bosh qolishi mukkin", 403))
-    }   
-    const isNull = checkBattailonsIsNull(battalions)
-    if(!isNull){
-        return next(new ErrorResponse("sorovlar bosh qolishi mukkin", 403))
-    }
-
-    contractDate = returnDate(contractDate)
-    taskDate = returnDate(taskDate)
-    if(!contractDate || !taskDate) {
-        return next(new ErrorResponse("sana formatini togri kiriting 'kun.oy.yil'. Masalan : 01.01.2024"))
-    }
-
-    const bxm = await pool.query(`SELECT * FROM bxm`)
-    const oneTimeMoney = Math.round(((bxm.rows[0].summa * 0.07) * 100) / 100)
-
-    const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, battalions, discount, taskTime)
-    const forBattalion = returnBattalion(oneTimeMoney, battalions, discount, taskTime)
+    } = req.body;
     
+    if(!contractNumber || !contractDate ||  !clientName || !timeLimit || !address || !taskDate || !taskTime){
+        return next(new ErrorResponse("sorovlar bosh qolishi mumkin", 403));
+    }
+
+    const isNull = checkBattailonsIsNull(battalions);
+    if(!isNull){
+        return next(new ErrorResponse("sorovlar bosh qolishi mumkin", 403));
+    }
+
+    contractDate = returnDate(contractDate);
+    taskDate = returnDate(taskDate);
+    if(!contractDate || !taskDate) {
+        return next(new ErrorResponse("sana formatini togri kiriting 'kun.oy.yil'. Masalan : 01.01.2024"));
+    }
+
+    const bxm = await pool.query(`SELECT * FROM bxm`);
+    const oneTimeMoney = Math.round(((bxm.rows[0].summa * 0.07) * 100) / 100);
+
+    const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, battalions, discount, taskTime);
+    const forBattalion = returnBattalion(oneTimeMoney, battalions, discount, taskTime);
     const contract = await pool.query(
-            `UPDATE  contracts SET 
-                contractNumber = $1, 
-                contractDate = $2, 
-                clientName = $3, 
-                clientAddress =$4 , 
-                clientMFO = $5, 
-                clientAccount = $6, 
-                clientSTR = $7, 
-                treasuryAccount = $8, 
-                timeLimit = $9, 
-                address = $10, 
-                discount = $11,
-                allworkernumber = $12,
-                allmoney = $13,
-                timemoney = $14,
-                money = $15,
-                discountmoney = $16
-            WHERE id = 17
-            RETURNING id  
-        `, [ 
+        `UPDATE contracts SET 
+            contractNumber = $1, 
+            contractDate = $2, 
+            clientName = $3, 
+            clientAddress = $4, 
+            clientMFO = $5, 
+            clientAccount = $6, 
+            clientSTR = $7, 
+            treasuryAccount = $8, 
+            timeLimit = $9, 
+            address = $10, 
+            discount = $11,
+            allworkernumber = $12,
+            allmoney = $13,
+            timemoney = $14,
+            money = $15,
+            discountmoney = $16
+        WHERE id = $17
+        RETURNING id`,
+        [ 
             contractNumber, 
             contractDate, 
             clientName, 
@@ -238,13 +240,14 @@ exports.update = asyncHandler(async (req, res, next) => {
             forContract.discountMoney,
             req.params.id
         ]
-    )
-    await pool.query(`DELETE FROM tasks WHERE contract_id = $1`, [req.params.id])
-    await pool.query(`DELETE FROM iib_tasks WHERE contract_id = $1`, [req.params.id])
+    );
+
+    await pool.query(`DELETE FROM tasks WHERE contract_id = $1`, [req.params.id]);
+    await pool.query(`DELETE FROM iib_tasks WHERE contract_id = $1`, [req.params.id]);
     
     for(let battalion of forBattalion){
-        const battalionId = await pool.query(`SELECT id FROM users WHERE username = $1`, [battalion.name])
-        if(battalion.name === "Toshkent Shahar IIBB" || battalion.name === "98162" || battalion.name === "98157" ){
+        const battalionId = await pool.query(`SELECT id FROM users WHERE username = $1`, [battalion.name]);
+        if(battalion.name === "Toshkent Shahar IIBB" || battalion.name === "98162" || battalion.name === "98157"){
             await pool.query(`INSERT INTO iib_tasks (
                 user_id, 
                 contract_id,
@@ -256,24 +259,24 @@ exports.update = asyncHandler(async (req, res, next) => {
                 tasktime,
                 allmoney,
                 money,
-                discountmoney ,
+                discountmoney,
                 battalionname
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
-                    battalionId.rows[0].id,
-                    contract.rows[0].id,
-                    contractNumber,
-                    clientName,
-                    taskDate,
-                    battalion.workerNumber,
-                    battalion.oneTimeMoney,
-                    battalion.taskTime,
-                    battalion.allMoney,
-                    battalion.money,
-                    battalion.discountMoney,
-                    battalion.name
-                ])
-        }else{
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
+                battalionId.rows[0].id,
+                contract.rows[0].id,
+                contractNumber,
+                clientName,
+                taskDate,
+                battalion.workerNumber,
+                battalion.oneTimeMoney,
+                battalion.taskTime,
+                battalion.allMoney,
+                battalion.money,
+                battalion.discountMoney,
+                battalion.name
+            ]);
+        } else {
             await pool.query(`INSERT INTO tasks (
                 user_id, 
                 contract_id,
@@ -285,40 +288,40 @@ exports.update = asyncHandler(async (req, res, next) => {
                 tasktime,
                 allmoney,
                 money,
-                discountmoney ,
+                discountmoney,
                 battalionname
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
-                    battalionId.rows[0].id,
-                    contract.rows[0].id,
-                    contractNumber,
-                    clientName,
-                    taskDate,
-                    battalion.workerNumber,
-                    battalion.oneTimeMoney,
-                    battalion.taskTime,
-                    battalion.allMoney,
-                    battalion.money,
-                    battalion.discountMoney,
-                    battalion.name
-                ])
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
+                battalionId.rows[0].id,
+                contract.rows[0].id,
+                contractNumber,
+                clientName,
+                taskDate,
+                battalion.workerNumber,
+                battalion.oneTimeMoney,
+                battalion.taskTime,
+                battalion.allMoney,
+                battalion.money,
+                battalion.discountMoney,
+                battalion.name
+            ]);
         }
-        
     }
 
     return res.status(201).json({
         success: true,
         data: contract.rows[0]
-    })
-
-})
+    });
+});
 
 // get all contracts 
 exports.getAllcontracts = asyncHandler(async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10 
     const page = parseInt(req.query.page) || 1
 
-    let  contracts = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts OFFSET $1 LIMIT $2
+    let  contracts = await pool.query(`
+        SELECT id, contractnumber, contractdate, clientname, address 
+        FROM contracts OFFSET $1 LIMIT $2
         `, [(page - 1) * limit, limit ])
     let result  = contracts.rows.map(contract => {
         contract.contractdate = returnStringDate(contract.contractdate)
@@ -456,7 +459,6 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
     })
 })
 
-
 // payment contract 
 exports.paymentContract = asyncHandler(async (req, res, next) => {
     if(!req.user.adminstatus){
@@ -472,4 +474,34 @@ exports.paymentContract = asyncHandler(async (req, res, next) => {
         success: true,
         data: "Muvaffiqiyatli amalga oshirildi"
     })
+})
+
+// giving time to task 
+exports.givingTimeToTask = asyncHandler(async (req, res, next) => {
+    if(!req.user.adminstatus){
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+
+    let  {date} = req.body
+    date = returnDate(date)
+    if(!date){
+        return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
+    }
+
+    const test = checkDateWithNowDate(date)
+    if(!test){
+        const nowDate = returnStringDate(new Date())
+        return next(new ErrorResponse(`topshiriq vaqtini uzytrish uchun siz hozirgi kundan hech bolmasa bir kun koproq vaqt berishinggiz kerak. Hozirgi vaqt : ${nowDate}`, 400))
+    }
+
+    const task = await pool.query(`UPDATE tasks SET taskdate = $1, inprogress = $2, done = $3, notdone = $4
+        WHERE id = $5 AND notdone = $6
+        RETURNING id, battalionname, taskdate, workernumber, inprogress, done, notdone 
+    `, [date, true, false, false, req.params.id, true])
+
+    return res.status(200).json({
+        success: true,
+        data: task.rows[0]
+    })
+
 })

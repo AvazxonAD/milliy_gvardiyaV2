@@ -8,9 +8,9 @@ exports.returnDate = (date) => {
 
 // return string  date 
 exports.returnStringDate = (date) => {
-    const day = date.getUTCDate().toString().padStart(2, '0'); // "05"
-    let  month = (date.getUTCMonth() + 1).toString().padStart(2, '0'); // "01"
-    const year = date.getUTCFullYear().toString(); // "2024"
+    const day = date.getDate().toString().padStart(2, '0'); // "05"
+    let  month = (date.getMonth() + 1).toString().padStart(2, '0'); // "01"
+    const year = date.getFullYear().toString(); // "2024"
     month = getMonth(month)
     return topshiriqSana = `${day}-${month} ${year}-йил`;
 }

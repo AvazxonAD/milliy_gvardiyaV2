@@ -82,3 +82,11 @@ exports.blockTasks = (tasks) => {
     }
     return result
 }
+
+// check date with now date 
+exports.checkDateWithNowDate = (date) => {
+    if(date < new Date()){
+        return false;
+    }
+    return true
+}

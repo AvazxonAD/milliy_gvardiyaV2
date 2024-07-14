@@ -12,7 +12,8 @@ const {
     taskOfWorker,
     filterByDate,
     paymentContract,
-    update
+    update,
+    givingTimeToTask
 } = require('../controller/contract.controller')
 
 router.post("/create", protect, create)
@@ -24,5 +25,6 @@ router.get('/print/task/worker/:id', protect, taskOfWorker)
 router.post('/filter/by/date', protect, filterByDate)
 router.get('/payment/contract/:id', protect, paymentContract)
 router.put('/update/:id', protect, update)
+router.post('/giving/time/to/task/:id', protect, givingTimeToTask)
 
 module.exports = router
