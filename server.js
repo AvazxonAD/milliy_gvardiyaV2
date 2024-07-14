@@ -19,7 +19,7 @@ app.use('/bxm', require('./router/bxm.router'))
 app.use('/contract', require("./router/contract.router"))
 app.use('/task', require('./router/task.router'))
 app.use('/worker_task', require('./router/worker.task.router'))
-
+app.use("/result", require('./router/result.router'))
 
 app.use(require('./middleware/errorHandler'))
 

@@ -68,9 +68,11 @@ exports.create = asyncHandler(async (req, res, next) => {
             allmoney,
             timemoney,
             money,
-            discountmoney
+            discountmoney,
+            tasktime,
+            taskdate
             )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
         RETURNING * 
         `, [ 
             contractNumber, 
@@ -88,7 +90,9 @@ exports.create = asyncHandler(async (req, res, next) => {
             forContract.allMoney,
             oneTimeMoney,
             forContract.money,
-            forContract.discountMoney
+            forContract.discountMoney,
+            taskTime,
+            taskDate
         ]
     );
     for(let battalion of forBattalion){
@@ -394,7 +398,6 @@ exports.toPrint = asyncHandler(async (req, res, next) => {
     for(let task of iib_tasks.rows){
         tasksResult.push(task)
     }
-
     return res.status(200).json({
         success: true,
         data: resultContract,

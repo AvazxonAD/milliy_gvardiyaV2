@@ -7,7 +7,7 @@ const {
     pushWorker,
     getAlltasksOfWorker,
     filterByDate
-} = require('../controller/worker_task.controller')
+} = require('../controller/worker.task.controller')
 
 router.post('/push/worker/:id', protect, pushWorker)
 router.get("/tasks/of/worker/:id", protect, getAlltasksOfWorker)

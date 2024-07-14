@@ -10,6 +10,13 @@ CREATE TABLE bxm (
     summa NUMERIC NOT NULL
 );
 
+CREATE TABLE commands (
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    commanddate DATE NOT NULL,
+    date1 DATE NOT NULL,
+    date2 DATE NOT NUll
+)
+
 CREATE TABLE workers (
     id BIGSERIAL NOT NULL PRIMARY KEY,
     FIO VARCHAR(200) NOT NULL,
@@ -35,6 +42,8 @@ CREATE TABLE contracts (
     money NUMERIC NOT NULL,
     discountMoney NUMERIC,
     isPay BOOLEAN DEFAULT false,
+    tasktime INTEGER NOT NULL,
+    taskdate DATE NOT NULL,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -69,7 +78,10 @@ CREATE TABLE worker_tasks (
     taskdate DATE NOT NULL,
     clientname VARCHAR(200) NOT NULL,
     isPay BOOLEAN DEFAULT false,
-    address VARCHAR(400) NOT NULL
+    address VARCHAR(400) NOT NULL,
+    pay BOOLEAN DEFAULT false,
+    commandId INTEGER REFERENCES commands(id),
+    user_id INTEGER REFERENCES users(id)
 );
 
 CREATE TABLE iib_tasks (
@@ -86,5 +98,7 @@ CREATE TABLE iib_tasks (
     allMoney INTEGER NOT NULL,
     discountMoney INTEGER,
     money INTEGER NOT NULL,
-    isPay BOOLEAN DEFAULT false
+    isPay BOOLEAN DEFAULT false,
+    pay BOOLEAN DEFAULT false,
+    commandId INTEGER REFERENCES commands(id)
 );
