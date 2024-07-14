@@ -2,7 +2,8 @@ const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const {
     returnDate,
-    returnStringDate
+    returnStringDate,
+    returnLocalDate
 } = require('../utils/date.function')
 
 const {
@@ -386,6 +387,7 @@ exports.toPrint = asyncHandler(async (req, res, next) => {
     const contract = await pool.query(`SELECT * FROM contracts WHERE id = $1`, [req.params.id])
     let resultContract  = contract.rows.map(contract => {
         contract.contractdate = returnStringDate(contract.contractdate)
+        contract.taskdate = returnLocalDate(contract.taskdate) 
         return contract  
     })
 

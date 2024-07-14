@@ -46,3 +46,12 @@ function getMonth (month) {
             return 'server xatolik';
     }
 }
+
+
+// return local date 
+exports.returnLocalDate = (date) => {
+    const day = date.getDate().toString().padStart(2, '0'); // "05"
+    const  month = (date.getMonth() + 1).toString().padStart(2, '0'); // "01"
+    const year = date.getFullYear().toString(); // "2024"
+    return topshiriqSana = `${day}.${month}.${year}`;
+}
