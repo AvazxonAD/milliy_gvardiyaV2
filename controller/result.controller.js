@@ -59,7 +59,7 @@ exports.getAllCommand = asyncHandler(async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10 
     const page = parseInt(req.query.page) || 1
 
-    const commands =  await pool.query(`SELECT commandnumber, commanddate FROM commands OFFSET $1 LIMIT $2 `, [(page - 1) * limit, limit ])
+    const commands =  await pool.query(`SELECT id, commandnumber, commanddate FROM commands OFFSET $1 LIMIT $2 `, [(page - 1) * limit, limit ])
     let result  = commands.rows.map(command => {
         command.commanddate = returnStringDate(command.commanddate)
         return command  
@@ -77,4 +77,37 @@ exports.getAllCommand = asyncHandler(async (req, res, next) => {
         data: result
     })
 
+})
+
+// get battalion and workers 
+exports.getBattalionAndWorkers = asyncHandler(async (req, res, next) => {
+    const command = await pool.query(`SELECT id, commandnumber, commanddate, date1, date2  FROM commands WHERE id = $1`, [req.params.id])
+    let resultCommand  = command.rows.map(command => {
+        command.commanddate = returnStringDate(command.commanddate)
+        command.date1 = returnStringDate(command.date1)
+        command.date2 = returnStringDate(command.date2)
+        return command  
+    })
+
+    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1 AND username NOT IN ($2, $3, $4)
+    `, [false,"Toshkent Shahar IIBB", "98162", "98157"])
+    
+        let result = []
+
+    for(let battalion of batalyons.rows){
+        const workers = await pool.query(`SELECT DISTINCT(worker_name), SUM(summa) AS allSumma
+            FROM worker_tasks 
+            WHERE commandid = $1 AND pay = $2 AND ispay = $3 AND  user_id = $4 
+            GROUP BY worker_name
+            `,[req.params.id, true, true, battalion.id])
+
+        if(workers.rows.length > 1){
+            result.push({batalyonName: battalion.username, workers: workers.rows})
+        }
+    }
+    return res.status(200).json({
+        success: true,
+        data: result,
+        command: resultCommand
+    })
 })

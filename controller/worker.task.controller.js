@@ -13,6 +13,7 @@ const {
 
 // push worker
 exports.pushWorker = asyncHandler(async (req, res, next) => {
+    console.log(req.user.id)
     const task = await pool.query(`SELECT * FROM tasks WHERE id = $1 AND user_id = $2`, [req.params.id, req.user.id])
     console.log(task.rows)
     if(task.rows[0].notdone || task.rows[0].done){
