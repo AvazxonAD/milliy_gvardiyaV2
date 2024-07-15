@@ -181,8 +181,15 @@ exports.updateWorker = asyncHandler(async (req, res, next) => {
 
 // delete worker 
 exports.deleteWorker = asyncHandler(async (req, res, next) => {
-    const deleteWorker = await pool.query(`DELETE FROM workers WHERE id = $1 AND user_id = $2 RETURNING * 
-        `, [req.params.id, req.user.id])
+    if(!req.user.adminstatus){
+        const deleteWorker = await pool.query(`DELETE FROM workers WHERE id = $1 AND user_id = $2 RETURNING * 
+            `, [req.params.id, req.user.id])
+        if(!deleteWorker.rows[0]){
+            return next(new ErrorResponse("server xatolik ochirilmadi", 500))
+        }    
+    }
+    const deleteWorker = await pool.query(`DELETE FROM workers WHERE id = $1 RETURNING * 
+        `, [req.params.id])
     if(!deleteWorker.rows[0]){
         return next(new ErrorResponse("server xatolik ochirilmadi", 500))
     }
