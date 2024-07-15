@@ -15,7 +15,8 @@ CREATE TABLE commands (
     commanddate DATE NOT NULL,
     date1 DATE NOT NULL,
     date2 DATE NOT NUll,
-    commandnumber INTEGER NOT NULL
+    commandnumber INTEGER NOT NULL,
+    status BOOLEAN DEFAULT false
 )
 
 CREATE TABLE workers (

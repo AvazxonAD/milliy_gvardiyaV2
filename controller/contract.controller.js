@@ -373,11 +373,17 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
     let  resulttasks = await pool.query(`SELECT id, battalionname, taskdate, workernumber, inprogress, done, notdone  FROM tasks WHERE contract_id = $1
     `, [req.params.id])
     
+    const iib_tasks = await pool.query(`SELECT id, battalionname,  workernumber FROM iib_tasks WHERE contract_id = $1`, [contract.rows[0].id])
     
     let result = resulttasks.rows.map(task => {
             task.taskdate = returnStringDate(task.taskdate)
             return task
     })
+
+    for(let task of iib_tasks.rows){
+        result.push(task)
+    }
+
     return res.status(200).json({
         success: true,
         data: resultContract,
@@ -513,4 +519,18 @@ exports.givingTimeToTask = asyncHandler(async (req, res, next) => {
         data: task.rows[0]
     })
 
+})
+
+// for contract batalyons 
+exports.forContractBatalyonns = asyncHandler(async (req, res, next) => {
+    if(!req.user.adminstatus){
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1
+    `, [false])
+    
+    res.status(200).json({
+        success: true,
+        data: batalyons.rows
+    })
 })
