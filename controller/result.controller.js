@@ -111,3 +111,82 @@ exports.getBattalionAndWorkers = asyncHandler(async (req, res, next) => {
         command: resultCommand
     })
 })
+
+// update command 
+exports.updateCommand = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+
+    let { date1, date2, commandDate, commandNumber } = req.body
+    if (!date1 || !date2 || !commandDate || !commandNumber || typeof commandNumber !== "number") {
+        return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
+    }
+
+    date1 = returnDate(date1)
+    date2 = returnDate(date2)
+    commandDate = returnDate(commandDate)
+    if (!date1 || !date2 || !commandDate) {
+        return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
+    }
+
+    const worker_tasks = await pool.query(`SELECT * FROM worker_tasks WHERE ispay = $1 AND pay = $2 AND taskdate BETWEEN $3 AND $4 
+        `,[true, false, date1, date2])
+    if(worker_tasks.rows.length < 1){
+        return next(new ErrorResponse('ushbu muddat ichida hech bir batalyon ommaviy tadbirda ishtirok etmadi', 400))
+    }
+
+    const command = await pool.query(`INSERT INTO commands (date1, date2, commanddate, commandnumber) VALUES($1, $2, $3, $4) RETURNING *
+        `, [date1, date2, commandDate, commandNumber])
+    
+    await pool.query(`
+        UPDATE worker_tasks  
+        SET commandid = $1, pay = $2
+        WHERE ispay = $3 AND pay = $4 AND taskdate BETWEEN $5 AND $6
+    `, [command.rows[0].id, true, true, false, date1, date2]);
+
+    return res.status(200).json({
+        success: true,
+        data: command.rows
+    })
+})
+
+
+// create special 
+exports.createSpecial = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+
+    let { date1, date2, commandDate, commandNumber } = req.body
+    if (!date1 || !date2 || !commandDate || !commandNumber || typeof commandNumber !== "number") {
+        return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
+    }
+
+    date1 = returnDate(date1)
+    date2 = returnDate(date2)
+    commandDate = returnDate(commandDate)
+    if (!date1 || !date2 || !commandDate) {
+        return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
+    }
+
+    const iib_tasks = await pool.query(`SELECT * FROM iib_tasks WHERE ispay = $1 AND pay = $2 AND taskdate BETWEEN $3 AND $4 
+        `,[true, false, date1, date2])
+    if(iib_tasks.rows.length < 1){
+        return next(new ErrorResponse('ushbu muddat ichida "Toshkent Shahar IIBB", "98162", "98157" ommaviy tadbirda ishtirok etmadi', 400))
+    }
+
+    const command = await pool.query(`INSERT INTO commands (date1, date2, commanddate, commandnumber) VALUES($1, $2, $3, $4) RETURNING *
+        `, [date1, date2, commandDate, commandNumber])
+    
+    await pool.query(`
+        UPDATE iib_tasks  
+        SET commandid = $1, pay = $2
+        WHERE ispay = $3 AND pay = $4 AND taskdate BETWEEN $5 AND $6
+    `, [command.rows[0].id, true, true, false, date1, date2]);
+
+    return res.status(200).json({
+        success: true,
+        data: command.rows
+    })
+})

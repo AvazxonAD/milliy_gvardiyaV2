@@ -111,9 +111,10 @@ exports.create = asyncHandler(async (req, res, next) => {
                 allmoney,
                 money,
                 discountmoney ,
-                battalionname
+                battalionname,
+                address
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`, [
                     battalionId.rows[0].id,
                     contract.rows[0].id,
                     contractNumber,
@@ -125,7 +126,8 @@ exports.create = asyncHandler(async (req, res, next) => {
                     battalion.allMoney,
                     battalion.money,
                     battalion.discountMoney,
-                    battalion.name
+                    battalion.name,
+                    address
                 ])
         }else{
             await pool.query(`INSERT INTO tasks (
@@ -140,9 +142,10 @@ exports.create = asyncHandler(async (req, res, next) => {
                 allmoney,
                 money,
                 discountmoney ,
-                battalionname
+                battalionname,
+                address
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`, [
                     battalionId.rows[0].id,
                     contract.rows[0].id,
                     contractNumber,
@@ -154,7 +157,8 @@ exports.create = asyncHandler(async (req, res, next) => {
                     battalion.allMoney,
                     battalion.money,
                     battalion.discountMoney,
-                    battalion.name
+                    battalion.name,
+                    address
                 ])
         }
         

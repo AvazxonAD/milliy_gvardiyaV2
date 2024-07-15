@@ -64,7 +64,8 @@ CREATE TABLE tasks (
     money INTEGER NOT NULL,
     done BOOLEAN DEFAULT false,
     inProgress BOOLEAN DEFAULT true,
-    notDone BOOLEAN DEFAULT false
+    notDone BOOLEAN DEFAULT false,
+    address VARCHAR(500) NOT NULL
 );
 
 CREATE TABLE worker_tasks (
@@ -101,5 +102,6 @@ CREATE TABLE iib_tasks (
     money INTEGER NOT NULL,
     isPay BOOLEAN DEFAULT false,
     pay BOOLEAN DEFAULT false,
-    commandId INTEGER REFERENCES commands(id)
+    commandId INTEGER REFERENCES commands(id),
+    address VARCHAR(500) NOT NULL
 );

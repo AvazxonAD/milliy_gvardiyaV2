@@ -6,11 +6,13 @@ const protect = require('../middleware/auth')
 const { 
     resultCreate,
     getAllCommand,
-    getBattalionAndWorkers
+    getBattalionAndWorkers,
+    createSpecial
 } = require('../controller/result.controller')
 
 router.post("/create", protect, resultCreate)
 router.get('/get/command', protect, getAllCommand)
 router.get('/get/battalion/workers/:id', protect, getBattalionAndWorkers)
+router.post("/create/special", protect, createSpecial)
 
 module.exports = router
