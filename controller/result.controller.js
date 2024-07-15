@@ -28,7 +28,7 @@ exports.resultCreate = asyncHandler(async (req, res, next) => {
     if (!date1 || !date2 || !commandDate) {
         return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
     }
-
+ 
     const worker_tasks = await pool.query(`SELECT * FROM worker_tasks WHERE ispay = $1 AND pay = $2 AND taskdate BETWEEN $3 AND $4 
         `,[true, false, date1, date2])
     if(worker_tasks.rows.length < 1){
@@ -152,3 +152,28 @@ exports.getAllCommand = asyncHandler(async (req, res, next) => {
 
 })
 
+// filter by date 
+exports.filterByDate = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+
+    let {date1, date2} = req.body
+    date1 = returnDate(date1)
+    date2 = returnDate(date2)
+    if(!date1 || !date2){
+       return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
+    }
+
+    const commands =  await pool.query(`SELECT id, commandnumber, commanddate FROM commands WHERE status = $1 AND commanddate BETWEEN $2 AND $3
+        `, [false, date1, date2])
+    let result  = commands.rows.map(command => {
+        command.commanddate = returnStringDate(command.commanddate)
+        return command  
+    })
+
+    return res.status(200).json({
+        success: true,
+        data: result
+    })
+})
