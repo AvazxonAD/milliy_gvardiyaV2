@@ -17,7 +17,7 @@ CREATE TABLE commands (
     date2 DATE NOT NUll,
     commandnumber INTEGER NOT NULL,
     status BOOLEAN DEFAULT false
-)
+);
 
 CREATE TABLE workers (
     id BIGSERIAL NOT NULL PRIMARY KEY,
@@ -32,7 +32,7 @@ CREATE TABLE contracts (
     clientName VARCHAR(300) NOT NULL,
     clientAddress VARCHAR(400),
     clientMFO INTEGER,
-    clientAccount INTEGER,
+    clientAccount VARCHAR(23),
     clientSTR INTEGER,
     treasuryAccount VARCHAR(100),
     timeLimit VARCHAR(500) NOT NULL,

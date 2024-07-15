@@ -50,7 +50,6 @@ exports.resultCreate = asyncHandler(async (req, res, next) => {
     })
 })
 
-
 // get battalion and workers 
 exports.getBattalionAndWorkers = asyncHandler(async (req, res, next) => {
     const command = await pool.query(`SELECT id, commandnumber, commanddate, date1, date2  FROM commands WHERE id = $1`, [req.params.id])

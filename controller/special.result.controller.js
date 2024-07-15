@@ -99,23 +99,32 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
     `, [false, "Toshkent Shahar IIBB", "98162", "98157"]);
 
     for(let batalyon of batalyons.rows){
-        const payTasks = await pool.query(`SELECT id,  battalionname, workernumber, timemoney, tasktime, allmoney 
+        let payTasks = await pool.query(`SELECT contractnumber, taskdate,  clientname, address, workernumber, allmoney 
             FROM iib_tasks 
         WHERE user_id = $1 AND pay = $2`, [batalyon.id, true])
-         
-        const tasks = await pool.query(`SELECT id,  battalionname, workernumber, timemoney, tasktime, allmoney 
+        resultPayTasks = payTasks.rows.map(task => {
+            task.taskdate = returnStringDate(task.taskdate)
+            return task
+        }) 
+
+        let tasks = await pool.query(`SELECT contractnumber, taskdate,  clientname, address, workernumber, allmoney 
             FROM iib_tasks 
         WHERE user_id = $1 AND pay = $2`, [batalyon.id, false])
-        
+        resultTasks = tasks.rows.map(task => {
+            task.taskdate = returnStringDate(task.taskdate)
+            return task
+        })
+
         const summa = await pool.query(`SELECT SUM(allmoney) 
             FROM iib_tasks 
         WHERE user_id = $1 AND pay = $2`, [batalyon.id, true])
+        console.log(tasks.rows)
         if(tasks.rows.length >= 1 || payTasks.rows.length >= 1){
             resultArray.push({
                 batalyonName : batalyon.username,
-                payContracts : payTasks.rows,
+                payContracts : resultPayTasks,
                 summa: summa.rows[0].sum,
-                notPayContracts: tasks.rows
+                notPayContracts: resultTasks
             })
         }
     }
