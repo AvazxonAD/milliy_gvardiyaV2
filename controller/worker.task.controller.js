@@ -13,9 +13,7 @@ const {
 
 // push worker
 exports.pushWorker = asyncHandler(async (req, res, next) => {
-    console.log(req.user.id)
     const task = await pool.query(`SELECT * FROM tasks WHERE id = $1 AND user_id = $2`, [req.params.id, req.user.id])
-    console.log(task.rows)
     if(task.rows[0].notdone || task.rows[0].done){
         return next(new ErrorResponse('bu topshiriq vaqtida bajarilmagan admin bilan bog"laning yoki allaqachon  bajarilgan topshiriq', 400))
     }
@@ -103,6 +101,7 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
         task.taskdate = returnStringDate(task.taskdate)
         return task
     })
+    
     const allmoney = getWorkerAllMoney(tasks.rows)
     return res.status(200).json({
         success: true,
