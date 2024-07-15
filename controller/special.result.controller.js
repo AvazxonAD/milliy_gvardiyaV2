@@ -117,13 +117,19 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
 
         const summa = await pool.query(`SELECT SUM(allmoney) 
             FROM iib_tasks 
-        WHERE user_id = $1 AND pay = $2`, [batalyon.id, true])
+            WHERE user_id = $1 AND pay = $2`, [batalyon.id, true])
+
+        const notPaySumma = await pool.query(`SELECT SUM(allmoney) 
+            FROM iib_tasks 
+            WHERE user_id = $1 AND ispay = $2`, [batalyon.id, false])
+        
         if(tasks.rows.length >= 1 || payTasks.rows.length >= 1){
             resultArray.push({
                 batalyonName : batalyon.username,
                 payContracts : resultPayTasks,
                 summa: summa.rows[0].sum,
-                notPayContracts: resultTasks
+                notPayContracts: resultTasks,
+                notPaySumma: notPaySumma.rows[0].sum
             })
         }
     }
@@ -159,3 +165,5 @@ exports.getAllSpecialFilterByDate = asyncHandler(async (req, res, next) => {
     })
 
 })
+
+// delete 
