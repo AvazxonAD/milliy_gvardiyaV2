@@ -352,7 +352,7 @@ exports.getAllcontracts = asyncHandler(async (req, res, next) => {
 
 // get  contract and all tasks 
 exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
-    let contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address, ispay FROM contracts WHERE contracts.id = $1
+    let contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address, ispay, address FROM contracts WHERE contracts.id = $1
     `, [req.params.id])
     
     let resultContract  = contract.rows.map(contract => {

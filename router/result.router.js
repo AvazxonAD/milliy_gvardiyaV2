@@ -10,8 +10,8 @@ const {
     createSpecial
 } = require('../controller/result.controller')
 
-router.post("/create", protect, resultCreate)
 router.get('/get/command/', protect, getAllCommand)
+router.post("/create", protect, resultCreate)
 router.get('/get/battalion/workers/:id', protect, getBattalionAndWorkers)
 router.post("/create/special", protect, createSpecial)
 

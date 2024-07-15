@@ -21,7 +21,7 @@ exports.getAllTasks = asyncHandler(async (req, res, next) => {
     }
 
     let tasks = await pool.query(`
-        SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone
+        SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address
         FROM tasks 
         WHERE user_id = $1
         `, [req.user.id])
