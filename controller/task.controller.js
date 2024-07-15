@@ -77,7 +77,7 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
     }
 
-    let tasks = await pool.query(`SELECT  id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone 
+    let tasks = await pool.query(`SELECT  id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address
         FROM tasks 
         WHERE  user_id = $1 AND taskdate BETWEEN $2 AND $3
     `, [req.user.id, date1, date2])
