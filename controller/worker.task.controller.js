@@ -1,6 +1,9 @@
 const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const pool = require("../config/db");
+const path = require('path')
+const xlsx = require('xlsx')
+const fs = require('fs')
 
 const {
     returnDate,
@@ -110,3 +113,88 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
     })
 
 })
+
+exports.excelCreate = asyncHandler(async (req, res, next) => {
+    let resultArray = [];
+
+    // SQL so'rovi orqali ma'lumotlarni olish
+    const workerNames = await pool.query(`
+        SELECT worker_name
+        FROM (
+            SELECT worker_name, SUM(summa) AS total_sum
+            FROM worker_tasks
+            GROUP BY worker_name
+        ) AS worker_sums
+        ORDER BY total_sum ASC;
+    `);
+
+    // Har bir ishchi uchun ma'lumotlarni to'plash
+    for (let worker of workerNames.rows) {
+        const paySumma = await pool.query(`
+            SELECT SUM(summa) FROM worker_tasks WHERE worker_name = $1 AND pay = $2
+        `, [worker.worker_name, true]);
+
+        const noyPaySumma = await pool.query(`
+            SELECT SUM(summa) FROM worker_tasks WHERE worker_name = $1 AND pay = $2
+        `, [worker.worker_name, false]);
+
+        const summa = await pool.query(`
+            SELECT SUM(summa) FROM worker_tasks WHERE worker_name = $1
+        `, [worker.worker_name]);
+
+        // Ma'lumotlarni resultArray ga qo'shish
+        resultArray.push({
+            Xodim: worker.worker_name,
+            Tolangan_summa: paySumma.rows[0].sum !== null ? paySumma.rows[0].sum : 0,
+            Tolanmagan_summa: noyPaySumma.rows[0].sum !== null ? noyPaySumma.rows[0].sum : 0,
+            Umumiy_summa: summa.rows[0].sum !== null ? summa.rows[0].sum : 0
+        });
+    }
+
+    // Excel faylni yaratish
+    const worksheetData = [];
+    
+    // Ma'lumotlar qismi
+    resultArray.forEach(data => {
+        worksheetData.push({
+            'Xodim': data.Xodim,
+            'Tolangan_summa': data.Tolangan_summa.toString(), // toString() ishlatilishi mumkin
+            'Tolanmagan_summa': data.Tolanmagan_summa.toString(),
+            'Umumiy_summa': data.Umumiy_summa.toString()
+        });
+    });
+
+    const worksheet = xlsx.utils.json_to_sheet(worksheetData);
+
+    // Ustunlar kengligini sozlash
+    worksheet['!cols'] = [
+        { width: 80 }, // Xodim
+        { width: 40 }, // Tolangan_summa
+        { width: 40 }, // Tolanmagan_summa
+        { width: 40 }  // Umumiy_summa
+    ];
+
+    // Workbook yaratish
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Xodimlar'); // 'Xodimlar' nomli sahifani qo'shish
+
+    // Fayl nomini generatsiya qilish
+    const filename = `${Date.now()}_data.xlsx`;
+    const filePath = path.join(__dirname, '..', 'public', 'uploads');
+    const outputPath = path.join(filePath, filename);
+
+    // Faylni yozish
+    xlsx.writeFile(workbook, outputPath);
+
+    // Faylni yuklab olish
+    res.download(outputPath, filename, (err) => {
+        if (err) {
+            console.error('Faylni yuklab olishda xatolik:', err);
+            res.status(500).send('Faylni yuklab olishda xatolik yuz berdi');
+        } else {
+            console.log('Fayl muvaffaqiyatli yuklab olindi');
+            // Faylni yaratilganidan so'ng uni o'chirish uchun
+            fs.unlinkSync(outputPath);
+        }
+    });
+});
