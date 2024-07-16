@@ -153,7 +153,7 @@ exports.excelCreate = asyncHandler(async (req, res, next) => {
 
     // Excel faylni yaratish
     const worksheetData = [];
-    
+
     // Ma'lumotlar qismi
     resultArray.forEach(data => {
         worksheetData.push({
@@ -198,3 +198,47 @@ exports.excelCreate = asyncHandler(async (req, res, next) => {
         }
     });
 });
+
+//for  excel create page 
+exports.forExcelCreatePage = asyncHandler(async (req, res, next) => {
+    let resultArray = [];
+
+    // SQL so'rovi orqali ma'lumotlarni olish
+    const workerNames = await pool.query(`
+        SELECT worker_name
+        FROM (
+            SELECT worker_name, SUM(summa) AS total_sum
+            FROM worker_tasks
+            GROUP BY worker_name
+        ) AS worker_sums
+        ORDER BY total_sum ASC;
+    `);
+
+    // Har bir ishchi uchun ma'lumotlarni to'plash
+    for (let worker of workerNames.rows) {
+        const paySumma = await pool.query(`
+            SELECT SUM(summa) FROM worker_tasks WHERE worker_name = $1 AND pay = $2
+        `, [worker.worker_name, true]);
+
+        const noyPaySumma = await pool.query(`
+            SELECT SUM(summa) FROM worker_tasks WHERE worker_name = $1 AND pay = $2
+        `, [worker.worker_name, false]);
+
+        const summa = await pool.query(`
+            SELECT SUM(summa) FROM worker_tasks WHERE worker_name = $1
+        `, [worker.worker_name]);
+
+        // Ma'lumotlarni resultArray ga qo'shish
+        resultArray.push({
+            Xodim: worker.worker_name,
+            Tolangan_summa: paySumma.rows[0].sum !== null ? paySumma.rows[0].sum : 0,
+            Tolanmagan_summa: noyPaySumma.rows[0].sum !== null ? noyPaySumma.rows[0].sum : 0,
+            Umumiy_summa: summa.rows[0].sum !== null ? summa.rows[0].sum : 0
+        });
+    }
+
+    return res.status(200).json({
+        success: true,
+        data: resultArray
+    })
+})
