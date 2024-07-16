@@ -1,6 +1,6 @@
 module.exports = (lastname, firstname, fatherName) => {
     // Tekshirish uchun RegExp ishlatamiz
-    const isFirstCharUpperCase = /^[A-Z]/;
+    const isFirstCharUpperCase = /^[A-ZА-ЯЎҒҚҲ]/;
 
     // Tekshirish
     const isLastNameCapitalized = isFirstCharUpperCase.test(lastname);
