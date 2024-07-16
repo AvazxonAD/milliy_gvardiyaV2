@@ -141,22 +141,29 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
     })
 })
 
-// excel create 
+
 exports.createExcel = asyncHandler(async (req, res, next) => {
     const { data } = req.body;
-    const filePath = path.join(__dirname, 'public', 'uploads');
+    const filePath = path.join(__dirname, '..', 'public', 'uploads');
 
     // Fayl katalogining mavjudligini tekshirish va kerak bo'lsa yaratish
     if (!fs.existsSync(filePath)) {
         fs.mkdirSync(filePath, { recursive: true });
     }
 
+    const command = await pool.query(`SELECT * FROM commands WHERE id = $1`, [req.params.id]);
+
     // Excel uchun jadvalni tayyorlash
     const worksheetData = [];
 
+    // Ma'lumotlar
     data.forEach(batalyon => {
         batalyon.workers.forEach(worker => {
             worksheetData.push({
+                'Buyruq_sana': returnStringDate(command.rows[0].commanddate),
+                'Boshlanish_sana': returnStringDate(command.rows[0].date1),
+                'Tugallash_sana': returnStringDate(command.rows[0].date2),
+                'Buyruq_raqami': command.rows[0].commandnumber,
                 'Batalyon nomi': batalyon.batalyonName,
                 'Ishchi nomi': worker.worker_name,
                 'Umumiy summa': worker.allsumma
@@ -164,9 +171,23 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
         });
     });
 
-    const worksheet = xlsx.utils.json_to_sheet(worksheetData);
+    const worksheet = xlsx.utils.json_to_sheet(worksheetData, {
+        header: [
+            'Buyruq_sana',
+            'Boshlanish_sana',
+            'Tugallash_sana',
+            'Buyruq_raqami',
+            'Batalyon nomi',
+            'Ishchi nomi',
+            'Umumiy summa'
+        ]
+    });
 
     worksheet['!cols'] = [
+        { wch: 20 }, // Buyruq_sana
+        { wch: 20 }, // Boshlanish_sana
+        { wch: 20 }, // Tugallash_sana
+        { wch: 15 }, // Buyruq_raqami
         { wch: 20 }, // Batalyon nomi
         { wch: 40 }, // Ishchi nomi
         { wch: 15 }  // Umumiy summa
