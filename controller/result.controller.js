@@ -1,6 +1,9 @@
 const pool = require('../config/db')
 const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require('../utils/errorResponse');
+const xlsx = require('xlsx')
+const path = require('path')
+const fs = require('fs')
 
 const {
     returnDate,
@@ -137,3 +140,63 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
         data: result
     })
 })
+
+// excel create 
+exports.createExcel = asyncHandler(async (req, res, next) => {
+    const { data } = req.body;
+    const filePath = path.join(__dirname, 'public', 'uploads');
+
+    // Fayl katalogining mavjudligini tekshirish va kerak bo'lsa yaratish
+    if (!fs.existsSync(filePath)) {
+        fs.mkdirSync(filePath, { recursive: true });
+    }
+
+    // Excel uchun jadvalni tayyorlash
+    const worksheetData = [];
+
+    data.forEach(batalyon => {
+        batalyon.workers.forEach(worker => {
+            worksheetData.push({
+                'Batalyon nomi': batalyon.batalyonName,
+                'Ishchi nomi': worker.worker_name,
+                'Umumiy summa': worker.allsumma
+            });
+        });
+    });
+
+    const worksheet = xlsx.utils.json_to_sheet(worksheetData);
+
+    worksheet['!cols'] = [
+        { wch: 20 }, // Batalyon nomi
+        { wch: 40 }, // Ishchi nomi
+        { wch: 15 }  // Umumiy summa
+    ];
+
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Ma\'lumotlar');
+
+    // Fayl nomini generatsiya qilish
+    const filename = `${Date.now()}_data.xlsx`;
+    const outputPath = path.join(filePath, filename);
+
+    try {
+        // Faylni yozish
+        xlsx.writeFile(workbook, outputPath);
+
+        // Faylni yuklab olish
+        res.download(outputPath, filename, (err) => {
+            if (err) {
+                console.error('Faylni yuklab olishda xatolik:', err);
+                res.status(500).send('Faylni yuklab olishda xatolik yuz berdi');
+            } else {
+                console.log('Fayl muvaffaqiyatli yuklab olindi');
+            }
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: "Faylni yaratishda xatolik yuz berdi",
+            error: err.message
+        });
+    }
+});

@@ -1,6 +1,7 @@
 const express = require('express')
 const app = express()
 const cors = require('cors')
+const path = require('path')
 
 app.use(express.json())
 app.use(express.urlencoded({extended: false}))
@@ -12,6 +13,8 @@ app.use(cors())
 require('./utils/createAdmin')()
 require("./utils/createBxm")()
 require("./utils/createBattalions")()
+
+app.use(express.static(path.join(__dirname, 'public')))
 
 app.use('/auth', require('./router/auth.router'))
 app.use('/worker', require('./router/worker.router'))

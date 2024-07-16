@@ -39,7 +39,7 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
             INSERT INTO worker_tasks (worker_id,  contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_name, user_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             `, [
-                id.rows[0].id, 
+                id.rows[0].id,
                 task.rows[0].contract_id, 
                 task.rows[0].tasktime, 
                 task.rows[0].allmoney / task.rows[0].workernumber,
