@@ -31,9 +31,10 @@ exports.create = asyncHandler(async (req, res, next) => {
         taskDate,
         taskTime,
         battalions,
-        discount
+        discount,
+        accountNumber
     } = req.body
-    if(!contractNumber || !contractDate ||  !clientName || !timeLimit || !address || !taskDate || !taskTime){
+    if(!contractNumber || !contractDate ||  !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber){
         return next(new ErrorResponse("sorovlar bosh qolishi mukkin", 403))
     }   
     const isNull = checkBattailonsIsNull(battalions)
@@ -54,15 +55,15 @@ exports.create = asyncHandler(async (req, res, next) => {
     const forBattalion = returnBattalion(oneTimeMoney, battalions, discount, taskTime)
     const contract = await pool.query(
         `INSERT INTO contracts (
-            contractNumber, 
-            contractDate, 
-            clientName, 
-            clientAddress, 
-            clientMFO, 
-            clientAccount, 
-            clientSTR, 
-            treasuryAccount,
-            timeLimit, 
+            contractnumber, 
+            contractdate, 
+            clientname, 
+            clientaddress, 
+            clientmfo, 
+            clientaccount, 
+            clientstr, 
+            treasuryaccount,
+            timelimit, 
             address, 
             discount,
             allworkernumber,
@@ -71,9 +72,10 @@ exports.create = asyncHandler(async (req, res, next) => {
             money,
             discountmoney,
             tasktime,
-            taskdate
+            taskdate,
+            accountnumber
             )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
         RETURNING * 
         `, [ 
             contractNumber, 
@@ -93,14 +95,13 @@ exports.create = asyncHandler(async (req, res, next) => {
             forContract.money,
             forContract.discountMoney,
             taskTime,
-            taskDate
+            taskDate,
+            accountNumber
         ]
     );
     for(let battalion of forBattalion){
-        const battalionId = await pool.query(`SELECT id FROM users WHERE username = $1`, [battalion.name])
         if(battalion.name === "Toshkent Shahar IIBB" || battalion.name === "98162" || battalion.name === "98157" ){
             await pool.query(`INSERT INTO iib_tasks (
-                user_id, 
                 contract_id,
                 contractnumber,
                 clientname,
@@ -114,8 +115,7 @@ exports.create = asyncHandler(async (req, res, next) => {
                 battalionname,
                 address
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`, [
-                    battalionId.rows[0].id,
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
                     contract.rows[0].id,
                     contractNumber,
                     clientName,
@@ -131,7 +131,6 @@ exports.create = asyncHandler(async (req, res, next) => {
                 ])
         }else{
             await pool.query(`INSERT INTO tasks (
-                user_id, 
                 contract_id,
                 contractnumber,
                 clientname,
@@ -145,8 +144,7 @@ exports.create = asyncHandler(async (req, res, next) => {
                 battalionname,
                 address
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`, [
-                    battalionId.rows[0].id,
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
                     contract.rows[0].id,
                     contractNumber,
                     clientName,
@@ -187,10 +185,11 @@ exports.update = asyncHandler(async (req, res, next) => {
         taskDate,
         taskTime,
         battalions,
-        discount
+        discount,
+        accountNumber
     } = req.body;
     
-    if(!contractNumber || !contractDate ||  !clientName || !timeLimit || !address || !taskDate || !taskTime){
+    if(!contractNumber || !contractDate ||  !clientName || !timeLimit || !address || !taskDate || !taskTime  || !accountNumber){
         return next(new ErrorResponse("sorovlar bosh qolishi mumkin", 403));
     }
 
@@ -212,23 +211,24 @@ exports.update = asyncHandler(async (req, res, next) => {
     const forBattalion = returnBattalion(oneTimeMoney, battalions, discount, taskTime);
     const contract = await pool.query(
         `UPDATE contracts SET 
-            contractNumber = $1, 
-            contractDate = $2, 
-            clientName = $3, 
-            clientAddress = $4, 
-            clientMFO = $5, 
-            clientAccount = $6, 
-            clientSTR = $7, 
-            treasuryAccount = $8, 
-            timeLimit = $9, 
+            contractnumber = $1, 
+            contractdate = $2, 
+            clientname = $3, 
+            clientaddress = $4, 
+            clientmfo = $5, 
+            clientaccount = $6, 
+            clientstr = $7, 
+            treasuryaccount = $8, 
+            timelimit = $9, 
             address = $10, 
             discount = $11,
             allworkernumber = $12,
             allmoney = $13,
             timemoney = $14,
             money = $15,
-            discountmoney = $16
-        WHERE id = $17
+            discountmoney = $16,
+            accountnumber = $17
+        WHERE id = $18
         RETURNING id`,
         [ 
             contractNumber, 
@@ -247,6 +247,7 @@ exports.update = asyncHandler(async (req, res, next) => {
             oneTimeMoney,
             forContract.money,
             forContract.discountMoney,
+            accountNumber,
             req.params.id
         ]
     );
@@ -255,10 +256,8 @@ exports.update = asyncHandler(async (req, res, next) => {
     await pool.query(`DELETE FROM iib_tasks WHERE contract_id = $1`, [req.params.id]);
     
     for(let battalion of forBattalion){
-        const battalionId = await pool.query(`SELECT id FROM users WHERE username = $1`, [battalion.name]);
         if(battalion.name === "Toshkent Shahar IIBB" || battalion.name === "98162" || battalion.name === "98157"){
             await pool.query(`INSERT INTO iib_tasks (
-                user_id, 
                 contract_id,
                 contractnumber,
                 clientname,
@@ -272,8 +271,7 @@ exports.update = asyncHandler(async (req, res, next) => {
                 battalionname,
                 address
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`, [
-                battalionId.rows[0].id,
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
                 contract.rows[0].id,
                 contractNumber,
                 clientName,
@@ -289,7 +287,6 @@ exports.update = asyncHandler(async (req, res, next) => {
             ]);
         } else {
             await pool.query(`INSERT INTO tasks (
-                user_id, 
                 contract_id,
                 contractnumber,
                 clientname,
@@ -303,8 +300,7 @@ exports.update = asyncHandler(async (req, res, next) => {
                 battalionname,
                 address
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`, [
-                battalionId.rows[0].id,
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, [
                 contract.rows[0].id,
                 contractNumber,
                 clientName,
@@ -332,10 +328,7 @@ exports.getAllcontracts = asyncHandler(async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10 
     const page = parseInt(req.query.page) || 1
 
-    let  contracts = await pool.query(`
-        SELECT id, contractnumber, contractdate, clientname, address 
-        FROM contracts OFFSET $1 LIMIT $2
-        `, [(page - 1) * limit, limit ])
+    let  contracts = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts OFFSET $1 LIMIT $2`, [(page - 1) * limit, limit ])
     let result  = contracts.rows.map(contract => {
         contract.contractdate = returnStringDate(contract.contractdate)
         return contract  
@@ -464,8 +457,7 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
        return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
     }
 
-    let  contracts = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts
-        WHERE contractdate BETWEEN $1 AND $2`, [date1, date2])
+    let  contracts = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE contractdate BETWEEN $1 AND $2`, [date1, date2])
 
     let result  = contracts.rows.map(contract => {
         contract.contractdate = returnStringDate(contract.contractdate)
@@ -513,7 +505,9 @@ exports.givingTimeToTask = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse(`topshiriq vaqtini uzytrish uchun siz hozirgi kundan hech bolmasa bir kun koproq vaqt berishinggiz kerak. Hozirgi vaqt : ${nowDate}`, 400))
     }
 
-    const task = await pool.query(`UPDATE tasks SET taskdate = $1, inprogress = $2, done = $3, notdone = $4
+    const task = await pool.query(`
+        UPDATE tasks 
+        SET taskdate = $1, inprogress = $2, done = $3, notdone = $4
         WHERE id = $5 AND notdone = $6
         RETURNING id, battalionname, taskdate, workernumber, inprogress, done, notdone 
     `, [date, true, false, false, req.params.id, true])
