@@ -8,10 +8,6 @@ const {
     returnStringDate
 } = require('../utils/date.function');
 
-const {
-    returnSumma
-} = require('../utils/result.function')
-
 
 // create special 
 exports.createSpecial = asyncHandler(async (req, res, next) => {
@@ -42,7 +38,7 @@ exports.createSpecial = asyncHandler(async (req, res, next) => {
     
     await pool.query(`
         UPDATE iib_tasks  
-        SET commandid = $1, pay = $2
+        SET command_id = $1, pay = $2
         WHERE ispay = $3 AND pay = $4 AND taskdate BETWEEN $5 AND $6
     `, [command.rows[0].id, true, true, false, date1, date2]);
 
@@ -83,16 +79,16 @@ exports.getAllSpecial = asyncHandler(async (req, res, next) => {
 
 // get iib_batalyon and contracts 
 exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
-    command = await pool.query(`SELECT id, commandnumber, commanddate, date1, date2  FROM commands WHERE id = $1`, [req.params.id])
+    command = await pool.query(`SELECT date1, date2  FROM commands WHERE id = $1`, [req.params.id])
     let resultCommand  = command.rows.map(command => {
-        command.commanddate = returnStringDate(command.commanddate)
         command.date1 = returnStringDate(command.date1)
         command.date2 = returnStringDate(command.date2)
         return command  
     })
+    
     let resultArray = []
     const batalyons = await pool.query(`
-        SELECT username, id 
+        SELECT username 
         FROM users 
         WHERE adminstatus = $1 
         AND (username = $2 OR username = $3 OR username = $4)
@@ -101,7 +97,7 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
     for(let batalyon of batalyons.rows){
         let payTasks = await pool.query(`SELECT contractnumber, taskdate,  clientname, address, workernumber, allmoney 
             FROM iib_tasks 
-        WHERE user_id = $1 AND pay = $2`, [batalyon.id, true])
+        WHERE battalionname = $1 AND pay = $2`, [batalyon.username, true])
         resultPayTasks = payTasks.rows.map(task => {
             task.taskdate = returnStringDate(task.taskdate)
             return task
@@ -109,7 +105,7 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
 
         let tasks = await pool.query(`SELECT contractnumber, taskdate,  clientname, address, workernumber, allmoney 
             FROM iib_tasks 
-        WHERE user_id = $1 AND pay = $2`, [batalyon.id, false])
+        WHERE battalionname = $1 AND pay = $2`, [batalyon.username, false])
         resultTasks = tasks.rows.map(task => {
             task.taskdate = returnStringDate(task.taskdate)
             return task
@@ -117,11 +113,11 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
 
         const summa = await pool.query(`SELECT SUM(allmoney) 
             FROM iib_tasks 
-            WHERE user_id = $1 AND pay = $2`, [batalyon.id, true])
+            WHERE battalionname = $1 AND pay = $2`, [batalyon.username, true])
 
         const notPaySumma = await pool.query(`SELECT SUM(allmoney) 
             FROM iib_tasks 
-            WHERE user_id = $1 AND ispay = $2`, [batalyon.id, false])
+            WHERE battalionname = $1 AND ispay = $2`, [batalyon.username, false])
         
         if(tasks.rows.length >= 1 || payTasks.rows.length >= 1){
             resultArray.push({
@@ -129,13 +125,14 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
                 payContracts : resultPayTasks,
                 summa: summa.rows[0].sum,
                 notPayContracts: resultTasks,
-                notPaySumma: notPaySumma.rows[0].sum
+                notPaySumma: notPaySumma.rows[0].sum ? notPaySumma.rows[0].sum : 0
             })
         }
     }
     return res.status(200).json({
         success: true,
-        data: resultArray
+        data: resultArray,
+        commandDate: resultCommand
     })
 })
 
@@ -167,3 +164,15 @@ exports.getAllSpecialFilterByDate = asyncHandler(async (req, res, next) => {
 })
 
 // delete 
+exports.deleteCommands = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+
+    await pool.query(`UPDATE iib_tasks SET pay = $1, command_id = $2 WHERE command_id = $3`, [false, null, req.params.id])
+    const command = await pool.query(`DELETE FROM commands WHERE id = $1 RETURNING *`, [req.params.id])
+    res.status(200).json({
+        success: true,
+        data: command.rows
+    })
+})

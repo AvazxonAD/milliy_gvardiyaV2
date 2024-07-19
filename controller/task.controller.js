@@ -11,7 +11,7 @@ const { blockTask } = require('../utils/worker.tasks.function')
 
 // get all tasks 
 exports.getAllTasks = asyncHandler(async (req, res, next) => {
-    let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE user_id = $1`, [req.user.id])
+    let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE battalionname = $1`, [req.user.username])
     let tests = blockTask(taskTest.rows)
     for (let test of tests) {
         await pool.query(`UPDATE tasks 
@@ -20,11 +20,8 @@ exports.getAllTasks = asyncHandler(async (req, res, next) => {
             `, [true, false, false, test.id])
     }
 
-    let tasks = await pool.query(`
-        SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address
-        FROM tasks 
-        WHERE user_id = $1
-        `, [req.user.id])
+    let tasks = await pool.query(`SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address FROM tasks WHERE battalionname = $1 ORDER BY  createdat DESC
+    `, [req.user.username])
     let result = tasks.rows.map(task => {
         task.taskdate = returnStringDate(task.taskdate)
         return task
@@ -39,15 +36,13 @@ exports.getAllTasks = asyncHandler(async (req, res, next) => {
 exports.filterByStatus = asyncHandler(async (req, res, next) => {
     let tasks = null
     if (req.query.inProgress) {
-        tasks = await pool.query(`SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address
-            FROM tasks 
-            WHERE user_id = $1 AND inprogress = $2`, [req.user.id, true])
+        tasks = await pool.query(`SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address FROM tasks WHERE user_id = $1 AND inprogress = $2 ORDER BY createdat DESC
+        `, [req.user.id, true])
     }
 
     else if (req.query.done) {
-        tasks = await pool.query(`SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address
-            FROM tasks 
-            WHERE user_id = $1 AND done = $2`, [req.user.id, true])
+        tasks = await pool.query(`SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address FROM tasks WHERE user_id = $1 AND done = $2 ORDER BY createdat DESC
+        `, [req.user.id, true])
     }
 
     else if (req.query.notDone) {

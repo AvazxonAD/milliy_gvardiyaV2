@@ -47,6 +47,7 @@ exports.getAllworker = asyncHandler(async (req, res, next) => {
             FROM workers
             JOIN users ON workers.user_id = users.id
             WHERE users.id = $1
+            ORDER BY fio ASC
             OFFSET $2
             LIMIT $3
         `, [req.params.id, (page - 1) * limit, limit])
@@ -98,7 +99,7 @@ exports.getAllBatalyon = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
         return next(new ErrorResponse("siz admin emassiz", 403))
     }
-    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1 AND username NOT IN ($2, $3, $4)
+    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1 AND username NOT IN ($2, $3, $4) ORDER BY username ASC
     `, [false, "Toshkent Shahar IIBB", "98162", "98157"])
 
     res.status(200).json({
@@ -134,12 +135,8 @@ exports.updateWorker = asyncHandler(async (req, res, next) => {
             }
         }
 
-        const updateUser = await pool.query(`
-                UPDATE workers 
-                SET fio = $1, user_id = $2
-                WHERE id = $3
-                RETURNING * 
-            `, [`${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`, batalyonId.rows[0].id, req.params.id])
+        const updateUser = await pool.query(` UPDATE workers SET fio = $1, user_id = $2 WHERE id = $3 RETURNING * 
+        `, [`${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`, batalyonId.rows[0].id, req.params.id])
 
         return res.status(200).json({
             success: true,
@@ -221,13 +218,12 @@ exports.searchWorker = asyncHandler(async (req, res, next) => {
 })
 
 exports.createExcel = asyncHandler(async (req, res, next) => {
-    // Ma'lumotlarni olish
-    const workers = await pool.query(`
-        SELECT workers.fio, users.username 
-        FROM workers 
-        JOIN users ON workers.user_id = users.id
-        WHERE users.id = $1
-    `, [req.user.id]);
+    let workers = null
+    if(req.query.battalion){
+        workers = await pool.query(` SELECT workers.fio, users.username  FROM workers JOIN users ON workers.user_id = users.id WHERE users.id = $1`, [req.query.id]);
+    }else{
+        workers = await pool.query(` SELECT workers.fio, users.username FROM workers JOIN users ON workers.user_id = users.id`);
+    }
 
     // Excel faylni yaratish
     const worksheetData = [];

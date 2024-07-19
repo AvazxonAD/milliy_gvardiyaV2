@@ -16,7 +16,7 @@ const {
 
 // push worker
 exports.pushWorker = asyncHandler(async (req, res, next) => {
-    const task = await pool.query(`SELECT * FROM tasks WHERE id = $1 AND user_id = $2`, [req.params.id, req.user.id])
+    const task = await pool.query(`SELECT * FROM tasks WHERE id = $1 AND battalionname = $2`, [req.params.id, req.user.username])
     if (task.rows[0].notdone || task.rows[0].done) {
         return next(new ErrorResponse('bu topshiriq vaqtida bajarilmagan admin bilan bog"laning yoki allaqachon  bajarilgan topshiriq', 400))
     }

@@ -42,8 +42,8 @@ exports.create = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("sorovlar bosh qolishi mukkin", 403))
     }
 
-    contractDate = returnDate(contractDate)
-    taskDate = returnDate(taskDate)
+    contractDate = returnDate(contractDate.trim())
+    taskDate = returnDate(taskDate.trim())
     if(!contractDate || !taskDate) {
         return next(new ErrorResponse("sana formatini togri kiriting 'kun.oy.yil'. Masalan : 01.01.2024"))
     }
@@ -80,14 +80,14 @@ exports.create = asyncHandler(async (req, res, next) => {
         `, [ 
             contractNumber, 
             contractDate, 
-            clientName, 
-            clientAddress, 
+            clientName.trim(), 
+            clientAddress ? clientAddress.trim() : null, 
             clientMFO, 
-            clientAccount, 
+            clientAccount ? clientAccount.trim() : null, 
             clientSTR, 
-            treasuryAccount, 
+            treasuryAccount ? treasuryAccount.trim() : null, 
             timeLimit, 
-            address,  
+            address.trim(),  
             discount,
             forContract.workerNumber,
             forContract.allMoney,
@@ -319,7 +319,7 @@ exports.update = asyncHandler(async (req, res, next) => {
 
     return res.status(201).json({
         success: true,
-        data: contract.rows[0]
+        data: "yangilandi"
     });
 });
 
@@ -328,8 +328,8 @@ exports.getAllcontracts = asyncHandler(async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10 
     const page = parseInt(req.query.page) || 1
 
-    let  contracts = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts OFFSET $1 LIMIT $2`, [(page - 1) * limit, limit ])
-    let result  = contracts.rows.map(contract => {
+    let  contracts = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts ORDER BY createdat DESC OFFSET $1 LIMIT $2`, [(page - 1) * limit, limit ])
+    let result  = contracts.rows.map(contract => { 
         contract.contractdate = returnStringDate(contract.contractdate)
         return contract  
     })

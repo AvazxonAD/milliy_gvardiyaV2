@@ -2,17 +2,11 @@ const pool = require('../config/db')
 const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require('../utils/errorResponse');
 const xlsx = require('xlsx')
-const path = require('path')
-const fs = require('fs')
 
 const {
     returnDate,
     returnStringDate
 } = require('../utils/date.function');
-
-const {
-    returnSumma
-} = require('../utils/result.function')
 
 // result create 
 exports.resultCreate = asyncHandler(async (req, res, next) => {
@@ -25,9 +19,9 @@ exports.resultCreate = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
     }
 
-    date1 = returnDate(date1)
-    date2 = returnDate(date2)
-    commandDate = returnDate(commandDate)
+    date1 = returnDate(date1.trim())
+    date2 = returnDate(date2.trim())
+    commandDate = returnDate(commandDate.trim())
     if (!date1 || !date2 || !commandDate) {
         return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
     }
@@ -43,7 +37,7 @@ exports.resultCreate = asyncHandler(async (req, res, next) => {
     
     await pool.query(`
         UPDATE worker_tasks  
-        SET commandid = $1, pay = $2
+        SET command_id = $1, pay = $2
         WHERE ispay = $3 AND pay = $4 AND taskdate BETWEEN $5 AND $6
     `, [command.rows[0].id, true, true, false, date1, date2]);
 
@@ -71,7 +65,7 @@ exports.getBattalionAndWorkers = asyncHandler(async (req, res, next) => {
     for(let battalion of batalyons.rows){
         const workers = await pool.query(`SELECT DISTINCT(worker_name), SUM(summa) AS allSumma
             FROM worker_tasks 
-            WHERE commandid = $1 AND pay = $2 AND ispay = $3 AND  user_id = $4 
+            WHERE command_id = $1 AND pay = $2 AND ispay = $3 AND  user_id = $4 
             GROUP BY worker_name
             `,[req.params.id, true, true, battalion.id])
 
@@ -159,8 +153,8 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
                 'Tugallash_sana': returnStringDate(command.rows[0].date2),
                 'Buyruq_raqami': command.rows[0].commandnumber,
                 'Batalyon nomi': batalyon.batalyonName,
-                'Ishchi nomi': worker.worker_name,
-                'Umumiy summa': worker.allsumma
+                'FIO': worker.worker_name,
+                'Umumiy summa': worker.allsumma ? Math.round((worker.allsumma * 0.25) * 100) / 100 : 0
             });
         });
     });
@@ -173,7 +167,7 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
             'Tugallash_sana',
             'Buyruq_raqami',
             'Batalyon nomi',
-            'Ishchi nomi',
+            'FIO',
             'Umumiy summa'
         ]
     });
@@ -185,7 +179,7 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
         { width: 20 }, // Tugallash_sana
         { width: 15 }, // Buyruq_raqami
         { width: 20 }, // Batalyon nomi
-        { width: 40 }, // Ishchi nomi
+        { width: 40 }, // FIO
         { width: 15 }  // Umumiy summa
     ];
 
@@ -220,3 +214,17 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.send(file_data);
 });
+
+// delete 
+exports.deleteCommands = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+
+    await pool.query(`UPDATE worker_tasks SET pay = $1, command_id = $2 WHERE command_id = $3`, [false, null, req.params.id])
+    const command = await pool.query(`DELETE FROM commands WHERE id = $1 RETURNING *`, [req.params.id])
+    res.status(200).json({
+        success: true,
+        data: command.rows
+    })
+})
