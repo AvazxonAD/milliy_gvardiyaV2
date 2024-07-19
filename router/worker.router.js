@@ -10,7 +10,8 @@ const {
     getAllBatalyon,
     updateWorker,
     deleteWorker,
-    searchWorker
+    searchWorker,
+    createExcel
 } = require('../controller/worker.controller')
 
 router.post("/create", protect, create)
@@ -20,5 +21,6 @@ router.get('/get/all/batalyon', protect, getAllBatalyon)
 router.put("/update/:id", protect, updateWorker)
 router.delete("/delete/:id", protect, deleteWorker)
 router.post('/search', protect, searchWorker)
+router.get("/excel/create", protect, createExcel)
 
 module.exports = router

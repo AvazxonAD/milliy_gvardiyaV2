@@ -17,4 +17,4 @@ router.post('/filter/by/date/:id', protect, filterByDate)
 router.get('/excel/create', protect, excelCreate)
 router.get("/for/excel/create/page", protect, forExcelCreatePage)
 
-module.exports = router
+module.exports = router  

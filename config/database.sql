@@ -71,7 +71,7 @@ CREATE TABLE tasks (
 
 CREATE TABLE worker_tasks (
     id BIGSERIAL NOT NULL PRIMARY KEY,
-    worker_id INTEGER REFERENCES workers(id) ON DELETE CASCADE, 
+    worker_id INTEGER  workers(id) ON DELETE CASCADE, 
     worker_name VARCHAR(300) NOT NULL,
     task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE, 
     onetimemoney INTEGER NOT NULL,
@@ -105,4 +105,15 @@ CREATE TABLE iib_tasks (
     pay BOOLEAN DEFAULT false,
     commandId INTEGER REFERENCES commands(id),
     address VARCHAR(500) NOT NULL
+);
+
+CREATE TABLE accountNumber(
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    accountnumber VARCHAR(20) NOT NULL
+);
+
+CREATE TABLE files (
+    id SERIAL PRIMARY KEY,
+    filename VARCHAR(255) NOT NULL,
+    file_data BYTEA NOT NULL
 );

@@ -141,22 +141,16 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
     })
 })
 
-
+// create excel 
 exports.createExcel = asyncHandler(async (req, res, next) => {
     const { data } = req.body;
-    const filePath = path.join(__dirname, '..', 'public', 'uploads');
 
-    // Fayl katalogining mavjudligini tekshirish va kerak bo'lsa yaratish
-    if (!fs.existsSync(filePath)) {
-        fs.mkdirSync(filePath, { recursive: true });
-    }
-
+    // Buyruqni olish
     const command = await pool.query(`SELECT * FROM commands WHERE id = $1`, [req.params.id]);
 
-    // Excel uchun jadvalni tayyorlash
     const worksheetData = [];
 
-    // Ma'lumotlar
+    // Ma'lumotlarni to'plash
     data.forEach(batalyon => {
         batalyon.workers.forEach(worker => {
             worksheetData.push({
@@ -171,6 +165,7 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
         });
     });
 
+    // Excel faylni yaratish
     const worksheet = xlsx.utils.json_to_sheet(worksheetData, {
         header: [
             'Buyruq_sana',
@@ -183,41 +178,45 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
         ]
     });
 
+    // Ustunlar kengligini sozlash
     worksheet['!cols'] = [
-        { wch: 20 }, // Buyruq_sana
-        { wch: 20 }, // Boshlanish_sana
-        { wch: 20 }, // Tugallash_sana
-        { wch: 15 }, // Buyruq_raqami
-        { wch: 20 }, // Batalyon nomi
-        { wch: 40 }, // Ishchi nomi
-        { wch: 15 }  // Umumiy summa
+        { width: 20 }, // Buyruq_sana
+        { width: 20 }, // Boshlanish_sana
+        { width: 20 }, // Tugallash_sana
+        { width: 15 }, // Buyruq_raqami
+        { width: 20 }, // Batalyon nomi
+        { width: 40 }, // Ishchi nomi
+        { width: 15 }  // Umumiy summa
     ];
 
+    // Workbook yaratish
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Ma\'lumotlar');
 
-    // Fayl nomini generatsiya qilish
+    // Faylni bufferga yozish
+    const buffer = xlsx.write(workbook, { type: 'buffer' });
+
+    // Faylni ma'lumotlar bazasiga saqlash
     const filename = `${Date.now()}_data.xlsx`;
-    const outputPath = path.join(filePath, filename);
 
-    try {
-        // Faylni yozish
-        xlsx.writeFile(workbook, outputPath);
+    await pool.query(`
+        INSERT INTO files (filename, file_data)
+        VALUES ($1, $2)
+    `, [filename, buffer]);
 
-        // Faylni yuklab olish
-        res.download(outputPath, filename, (err) => {
-            if (err) {
-                console.error('Faylni yuklab olishda xatolik:', err);
-                res.status(500).send('Faylni yuklab olishda xatolik yuz berdi');
-            } else {
-                console.log('Fayl muvaffaqiyatli yuklab olindi');
-            }
-        });
-    } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: "Faylni yaratishda xatolik yuz berdi",
-            error: err.message
-        });
+    const fileResult = await pool.query(`
+        SELECT filename, file_data
+        FROM files
+        WHERE filename = $1
+    `, [filename]);
+
+    if (fileResult.rows.length === 0) {
+        return res.status(404).json({ message: 'Fayl topilmadi' });
     }
+
+    // Faylni yuklab olish
+    const { file_data } = fileResult.rows[0];
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(file_data);
 });
