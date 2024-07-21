@@ -27,7 +27,7 @@ exports.createSpecial = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 18.12.2024", 400))
     }
 
-    const iib_tasks = await pool.query(`SELECT * FROM iib_tasks WHERE ispay = $1 AND pay = $2 AND taskdate BETWEEN $3 AND $4 
+    const iib_tasks = await pool.query(`SELECT * FROM iib_tasks WHERE ispay = $1 AND pay = $2 AND taskdate >= $3 AND taskdate <= $4 
         `,[true, false, date1, date2])
     if(iib_tasks.rows.length < 1){
         return next(new ErrorResponse('ushbu muddat ichida Toshkent Shahar IIBB, 98162, 98157 ommaviy tadbirda ishtirok etmadi yoki ishtirok etgan tadbirlar hali pul otkazmadi', 400))
@@ -39,7 +39,7 @@ exports.createSpecial = asyncHandler(async (req, res, next) => {
     await pool.query(`
         UPDATE iib_tasks  
         SET command_id = $1, pay = $2
-        WHERE ispay = $3 AND pay = $4 AND taskdate BETWEEN $5 AND $6
+        WHERE ispay = $3 AND pay = $4 AND taskdate >= $5 AND taskdate <= $6
     `, [command.rows[0].id, true, true, false, date1, date2]);
 
     return res.status(200).json({
@@ -79,62 +79,121 @@ exports.getAllSpecial = asyncHandler(async (req, res, next) => {
 
 // get iib_batalyon and contracts 
 exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
-    command = await pool.query(`SELECT date1, date2  FROM commands WHERE id = $1`, [req.params.id])
-    let resultCommand  = command.rows.map(command => {
-        command.date1 = returnStringDate(command.date1)
-        command.date2 = returnStringDate(command.date2)
-        return command  
-    })
-    
-    let resultArray = []
-    const batalyons = await pool.query(`
-        SELECT username 
-        FROM users 
-        WHERE adminstatus = $1 
-        AND (username = $2 OR username = $3 OR username = $4)
-    `, [false, "Toshkent Shahar IIBB", "98162", "98157"]);
+    try {
+        const commandQuery = `
+            SELECT id, date1, date2 
+            FROM commands 
+            WHERE id = $1
+        `;
+        const command = await pool.query(commandQuery, [req.params.id]);
 
-    for(let batalyon of batalyons.rows){
-        let payTasks = await pool.query(`SELECT contractnumber, taskdate,  clientname, address, workernumber, allmoney 
-            FROM iib_tasks 
-        WHERE battalionname = $1 AND pay = $2`, [batalyon.username, true])
-        resultPayTasks = payTasks.rows.map(task => {
-            task.taskdate = returnStringDate(task.taskdate)
-            return task
-        }) 
-
-        let tasks = await pool.query(`SELECT contractnumber, taskdate,  clientname, address, workernumber, allmoney 
-            FROM iib_tasks 
-        WHERE battalionname = $1 AND pay = $2`, [batalyon.username, false])
-        resultTasks = tasks.rows.map(task => {
-            task.taskdate = returnStringDate(task.taskdate)
-            return task
-        })
-
-        const summa = await pool.query(`SELECT SUM(allmoney) 
-            FROM iib_tasks 
-            WHERE battalionname = $1 AND pay = $2`, [batalyon.username, true])
-
-        const notPaySumma = await pool.query(`SELECT SUM(allmoney) 
-            FROM iib_tasks 
-            WHERE battalionname = $1 AND pay = $2`, [batalyon.username, false])
-        
-        if(tasks.rows.length >= 1 || payTasks.rows.length >= 1){
-            resultArray.push({
-                batalyonName : batalyon.username,
-                payContracts : resultPayTasks,
-                summa: summa.rows[0].sum,
-                notPayContracts: resultTasks,
-                notPaySumma: notPaySumma.rows[0].sum ? notPaySumma.rows[0].sum : 0
-            })
+        if (!command.rows.length) {
+            return res.status(404).json({
+                success: false,
+                message: "Command not found"
+            });
         }
+
+
+        let resultArray = [];
+
+        const batalyonsQuery = `
+            SELECT username 
+            FROM users 
+            WHERE adminstatus = $1 
+            AND (username = $2 OR username = $3 OR username = $4)
+        `;
+        const batalyons = await pool.query(batalyonsQuery, [false, "Toshkent Shahar IIBB", "98162", "98157"]);
+
+        for (let batalyon of batalyons.rows) {
+            const payTasksQuery = `
+                SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney 
+                FROM iib_tasks 
+                WHERE battalionname = $1 
+                AND pay = $2 
+                AND taskdate BETWEEN $3 AND $4 
+                AND command_id = $5
+            `;
+            const payTasks = await pool.query(payTasksQuery, [
+                batalyon.username, true, command.rows[0].date1, command.rows[0].date2, command.rows[0].id
+            ]);
+
+            const resultPayTasks = payTasks.rows.map(task => {
+                task.taskdate = returnStringDate(task.taskdate);
+                return task;
+            });
+
+            const tasksQuery = `
+                SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney 
+                FROM iib_tasks 
+                WHERE battalionname = $1 
+                AND pay = $2 
+                AND taskdate BETWEEN $3 AND $4 
+                AND command_id IS NULL
+            `;
+            const tasks = await pool.query(tasksQuery, [
+                batalyon.username, false, command.rows[0].date1, command.rows[0].date2
+            ]);
+
+            const resultTasks = tasks.rows.map(task => {
+                task.taskdate = returnStringDate(task.taskdate);
+                return task;
+            });
+
+            const summaQuery = `
+                SELECT SUM(allmoney) AS sum 
+                FROM iib_tasks 
+                WHERE battalionname = $1 
+                AND pay = $2 
+                AND taskdate BETWEEN $3 AND $4 
+                AND command_id = $5
+            `;
+            const summa = await pool.query(summaQuery, [
+                batalyon.username, true, command.rows[0].date1, command.rows[0].date2, command.rows[0].id
+            ]);
+
+            const notPaySummaQuery = `
+                SELECT SUM(allmoney) AS sum 
+                FROM iib_tasks 
+                WHERE battalionname = $1 
+                AND pay = $2 
+                AND taskdate BETWEEN $3 AND $4 
+                AND command_id IS NULL
+            `;
+            const notPaySumma = await pool.query(notPaySummaQuery, [
+                batalyon.username, false, command.rows[0].date1, command.rows[0].date2
+            ]);
+
+            if (tasks.rows.length >= 1 || payTasks.rows.length >= 1) {
+                resultArray.push({
+                    batalyonName: batalyon.username,
+                    payContracts: resultPayTasks,
+                    summa: summa.rows[0].sum,
+                    notPayContracts: resultTasks,
+                    notPaySumma: notPaySumma.rows[0].sum || 0
+                });
+            }
+        }
+
+        let resultCommand = command.rows.map(cmd => {
+            cmd.date1 = returnStringDate(cmd.date1);
+            cmd.date2 = returnStringDate(cmd.date2);
+            return cmd;
+        });
+
+        return res.status(200).json({
+            success: true,
+            data: resultArray,
+            commandDate: resultCommand
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
     }
-    return res.status(200).json({
-        success: true,
-        data: resultArray,
-        commandDate: resultCommand
-    })
-})
+});
 
 // filter special by date 
 exports.getAllSpecialFilterByDate = asyncHandler(async (req, res, next) => {
