@@ -26,7 +26,7 @@ exports.resultCreate = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
     }
  
-    const worker_tasks = await pool.query(`SELECT * FROM worker_tasks WHERE ispay = $1 AND pay = $2 AND taskdate BETWEEN $3 AND $4 
+    const worker_tasks = await pool.query(`SELECT * FROM worker_tasks WHERE ispay = $1 AND pay = $2 AND taskdate >= $3 AND  taskdate <= $4 
         `,[true, false, date1, date2])
     if(worker_tasks.rows.length < 1){
         return next(new ErrorResponse('ushbu muddat ichida hech bir batalyon ommaviy tadbirda ishtirok etmadi', 400))
@@ -38,7 +38,7 @@ exports.resultCreate = asyncHandler(async (req, res, next) => {
     await pool.query(`
         UPDATE worker_tasks  
         SET command_id = $1, pay = $2
-        WHERE ispay = $3 AND pay = $4 AND taskdate BETWEEN $5 AND $6
+        WHERE ispay = $3 AND pay = $4 AND taskdate >= $5 AND taskdate <= $6
     `, [command.rows[0].id, true, true, false, date1, date2]);
 
     return res.status(200).json({

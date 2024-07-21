@@ -111,7 +111,7 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
                 FROM iib_tasks 
                 WHERE battalionname = $1 
                 AND pay = $2 
-                AND taskdate BETWEEN $3 AND $4 
+                AND taskdate >= $3 AND taskdate <= $4 
                 AND command_id = $5
             `;
             const payTasks = await pool.query(payTasksQuery, [
@@ -128,7 +128,7 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
                 FROM iib_tasks 
                 WHERE battalionname = $1 
                 AND pay = $2 
-                AND taskdate BETWEEN $3 AND $4 
+                AND taskdate >= $3 AND taskdate <= $4 
                 AND command_id IS NULL
             `;
             const tasks = await pool.query(tasksQuery, [
@@ -145,7 +145,7 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
                 FROM iib_tasks 
                 WHERE battalionname = $1 
                 AND pay = $2 
-                AND taskdate BETWEEN $3 AND $4 
+                AND taskdate >= $3 AND  taskdate <= $4 
                 AND command_id = $5
             `;
             const summa = await pool.query(summaQuery, [
@@ -157,7 +157,7 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
                 FROM iib_tasks 
                 WHERE battalionname = $1 
                 AND pay = $2 
-                AND taskdate BETWEEN $3 AND $4 
+                AND taskdate >= $3 AND taskdate <= $4 
                 AND command_id IS NULL
             `;
             const notPaySumma = await pool.query(notPaySummaQuery, [
