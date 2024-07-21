@@ -11,7 +11,9 @@ const {
     deleteCommands,
     getSpecialBatalyon,
     getSpecialData,
-    getSpecialFiterDate
+    getSpecialFiterDate,
+    getFilterStatus,
+    getSpecialFilterByDateAndStatus
 } = require('../controller/special.result.controller')
 
 router.post("/create/commands", protect, createSpecial)
@@ -22,5 +24,7 @@ router.delete("/delete/:id", protect, deleteCommands)
 router.get('/get/battalions', protect, getSpecialBatalyon)
 router.get('/get/data/:id', protect, getSpecialData)
 router.post('/get/data/filter/by/date/:id', protect, getSpecialFiterDate)
+router.get('/get/data/filter/by/status/:id', protect, getFilterStatus)
+router.post("/get/data/filter/date/and/status/:id", protect, getSpecialFilterByDateAndStatus)
 
 module.exports = router
