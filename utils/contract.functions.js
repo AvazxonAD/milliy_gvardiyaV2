@@ -90,3 +90,16 @@ exports.checkDateWithNowDate = (date) => {
     }
     return true
 }
+
+exports.chechBattalionName = (battalions) => {
+    const nameSet = new Set();
+    
+    for (const battalion of battalions) {
+        if (nameSet.has(battalion.name)) {
+            return false; 
+        }
+        nameSet.add(battalion.name);
+    }
+
+    return true; 
+}

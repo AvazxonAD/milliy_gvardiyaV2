@@ -2,7 +2,8 @@ const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const checkUsername = require('../utils/checkUserName');
 const pool = require("../config/db");
-const xlsx = require('xlsx')
+const xlsx = require('xlsx');
+const { returnStringDate } = require("../utils/date.function");
 
 exports.create = asyncHandler(async (req, res, next) => {
     const { workers } = req.body
@@ -179,30 +180,58 @@ exports.updateWorker = asyncHandler(async (req, res, next) => {
         })
     }
 })
-
 // delete worker 
 exports.deleteWorker = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
-        return next(new ErrorResponse("siz admin emassiz", 403))
+        return next(new ErrorResponse("Bu amalni faqat admin bajargani maqul", 403));
     }
 
-    if (!req.user.adminstatus) {
-        const deleteWorker = await pool.query(`DELETE FROM workers WHERE id = $1 AND user_id = $2 RETURNING * 
-            `, [req.params.id, req.user.id])
-        if (!deleteWorker.rows[0]) {
-            return next(new ErrorResponse("server xatolik ochirilmadi", 500))
+    try {
+        // Xodimni tanlash
+        const worker = await pool.query('SELECT fio FROM workers WHERE id = $1', [req.params.id]);
+        if (worker.rowCount === 0) {
+            return next(new ErrorResponse("Xodim topilmadi", 404));
         }
+
+        // Xodimning to‘lanmagan pullarini tekshirish
+        const notPayMoney = await pool.query(`
+            SELECT worker_tasks.taskdate, contracts.contractnumber 
+            FROM worker_tasks 
+            JOIN contracts ON worker_tasks.contract_id = contracts.id 
+            WHERE worker_tasks.worker_name = $1 AND pay = $2 AND command_id IS NULL
+        `, [worker.rows[0].fio, false]);
+        
+        
+        if (notPayMoney.rowCount > 0) {
+            let result = notPayMoney.rows.map(notPay => {
+                return {
+                    taskdate: returnStringDate(notPay.taskdate),
+                    contractNumber: notPay.contractnumber
+                }
+            })
+            return res.status(400).json({
+                success: false,
+                notPayMoney: result,
+                message: "Ushbu xodim hali pastdan keltrilgan xizmatlari uchun ish haqini olmadi. Buni o‘chirishda xatoliklar yuzaga kelishi mumkin."
+            });
+        }
+
+        // Xodimni o‘chirish
+        const deleteWorker = await pool.query('DELETE FROM workers WHERE id = $1 RETURNING *', [req.params.id]);
+
+        if (!deleteWorker.rows[0]) {
+            return next(new ErrorResponse("Xodim o‘chirilmadi", 500));
+        }
+
+        res.status(200).json({
+            success: true,
+            data: "Xodim o‘chirildi"
+        });
+
+    } catch (error) {
+        next(error); // Umumiy xatoliklarni boshqarish
     }
-    const deleteWorker = await pool.query(`DELETE FROM workers WHERE id = $1 RETURNING * 
-        `, [req.params.id])
-    if (!deleteWorker.rows[0]) {
-        return next(new ErrorResponse("server xatolik ochirilmadi", 500))
-    }
-    res.status(200).json({
-        success: true,
-        data: "Delete"
-    })
-})
+});
 
 // search worker 
 exports.searchWorker = asyncHandler(async (req, res, next) => {

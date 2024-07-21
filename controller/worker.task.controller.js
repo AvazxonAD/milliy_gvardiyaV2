@@ -225,7 +225,6 @@ exports.forExcelCreatePage = asyncHandler(async (req, res, next) => {
         ) AS worker_sums
         ORDER BY total_sum ASC;
     `);
-
     // Har bir ishchi uchun ma'lumotlarni to'plash
     for (let worker of workerNames.rows) {
         const paySumma = await pool.query(`
@@ -248,7 +247,6 @@ exports.forExcelCreatePage = asyncHandler(async (req, res, next) => {
             Umumiy_summa: summa.rows[0].sum !== null ? summa.rows[0].sum : 0
         });
     }
-
     return res.status(200).json({
         success: true,
         data: resultArray

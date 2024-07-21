@@ -11,7 +11,8 @@ const {
     returnWorkerNumberAndAllMoney,
     returnBattalion,
     blockTasks,
-    checkDateWithNowDate
+    checkDateWithNowDate,
+    chechBattalionName
 } = require('../utils/contract.functions');
 const pool = require("../config/db");
 
@@ -40,6 +41,11 @@ exports.create = asyncHandler(async (req, res, next) => {
     const isNull = checkBattailonsIsNull(battalions)
     if(!isNull){
         return next(new ErrorResponse("sorovlar bosh qolishi mukkin", 403))
+    }
+
+    const testIsSame = chechBattalionName(battalions)
+    if(!testIsSame){
+        return next(new ErrorResponse("bitta shartnomada bitta organ bir marta tanlanishi kerak", 400))
     }
 
     contractDate = returnDate(contractDate.trim())
@@ -328,7 +334,12 @@ exports.getAllcontracts = asyncHandler(async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10 
     const page = parseInt(req.query.page) || 1
 
-    let  contracts = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts ORDER BY createdat DESC OFFSET $1 LIMIT $2`, [(page - 1) * limit, limit ])
+    let  contracts = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address 
+        FROM contracts 
+        ORDER BY contractdate DESC 
+        OFFSET $1 
+        LIMIT $2
+        `, [(page - 1) * limit, limit ])
     let result  = contracts.rows.map(contract => { 
         contract.contractdate = returnStringDate(contract.contractdate)
         return contract  
