@@ -95,6 +95,10 @@ exports.update = asyncHandler(async (req, res, next) => {
 // update batalyons 
 exports.updateBatalyons = asyncHandler(async (req, res, next) => {
     const batalyon = await pool.query(`SELECT * FROM users WHERE id = $1`, [req.params.id])
+    if(batalyon.rows[0].username === "Toshkent Shahar IIBB" || batalyon.rows[0].username === "98162" || batalyon.rows[0].username === "98157" ){
+        return next(new ErrorResponse("ushbu battalionlarga kop narsa bog'langan buni yangilash uchun dastruchi bilan bog'laning", 400))
+    }
+    
     const {username, newPassword} = req.body
     
     if(!username || !newPassword){

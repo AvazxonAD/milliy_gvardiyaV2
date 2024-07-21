@@ -12,7 +12,6 @@ const {
     deleteCommands
 } = require('../controller/result.controller')
 
-const upload = require('../utils/upload')
 
 router.get('/get/command/', protect, getAllCommand)
 router.post("/create", protect, resultCreate)

@@ -11,9 +11,9 @@ exports.create = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
         }
 
-        const test = checkUsername(worker.lastname.trim(), worker.firstname.trim(), worker.fatherName.trim())
-        if (!test.lastname || !test.firstname || !test.fatherName) {
-            return next(new ErrorResponse("Isim Familya Ochistva bosh harifda bolishi zarur", 400))
+        const test = checkUsername(`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`)
+        if (!test) {
+            return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz ", 400))
         }
 
         const testFIO = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2
@@ -110,6 +110,10 @@ exports.getAllBatalyon = asyncHandler(async (req, res, next) => {
 
 // update workers 
 exports.updateWorker = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+
     const worker = await pool.query(`SELECT fio FROM workers WHERE id = $1`, [req.params.id])
     if (req.user.adminstatus) {
         const { batalyon, lastname, firstname, fatherName } = req.body
@@ -179,6 +183,10 @@ exports.updateWorker = asyncHandler(async (req, res, next) => {
 // delete worker 
 exports.deleteWorker = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+
+    if (!req.user.adminstatus) {
         const deleteWorker = await pool.query(`DELETE FROM workers WHERE id = $1 AND user_id = $2 RETURNING * 
             `, [req.params.id, req.user.id])
         if (!deleteWorker.rows[0]) {
@@ -198,6 +206,7 @@ exports.deleteWorker = asyncHandler(async (req, res, next) => {
 
 // search worker 
 exports.searchWorker = asyncHandler(async (req, res, next) => {
+    
     const { fio } = req.body
     let worker = null
     if (!req.user.adminstatus) {
@@ -218,6 +227,10 @@ exports.searchWorker = asyncHandler(async (req, res, next) => {
 })
 
 exports.createExcel = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+
     let workers = null
     if(req.query.battalion){
         workers = await pool.query(` SELECT workers.fio, users.username  FROM workers JOIN users ON workers.user_id = users.id WHERE users.id = $1`, [req.query.id]);
@@ -229,7 +242,7 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
     const worksheetData = [];
 
     // Ma'lumotlar qismi
-    workers.rows.forEach(data => {
+    z.rows.forEach(data => {
         worksheetData.push({
             'Xodim': data.fio,
             'Batalyon': data.username
@@ -275,3 +288,57 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.send(file_data);
 });
+
+// import excel data create 
+exports.importExcel = asyncHandler(async (req, res, next) => {
+    if (!req.file) {
+        req.flash('error', 'Fayl yuklanmadi yoki tanlanmadi');
+        return res.redirect('/sms/page');
+    }
+
+    const fileBuffer = req.file.buffer;
+
+    // Excel faylini o'qish
+    const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    let data = xlsx.utils.sheet_to_json(sheet);
+
+    const datas = data.map(row => {
+        const newRow = {};
+        for (let key in row) {
+            const newKey = key.trim();
+            newRow[newKey] = row[key];
+        }
+        return newRow;
+    });
+
+    for(data of datas){
+        if(!data.fio){
+            return next(new ErrorResponse(`sorovlar boshh qolishi mumkin emas. Excel fileni tekshiring`, 400))
+        }
+        if(typeof data.fio !== "string"){
+            return next(new ErrorResponse(`malumotlar text formatida bolishi kerak excel fileni tekshiring. Xato sababchisi : ${data.fio}`, 400))
+        }
+        const fio = await pool.query(`SELECT * FROM workers WHERE user_id = $1 AND fio = $2`, [req.user.id, data.fio.trim()])
+        if(fio.rows[0]){
+            return next(new ErrorResponse(`Bu xodim avval kiritilgan: ${data.fio}`, 400))
+        }
+
+        const test = checkUsername(data.fio)
+        if(!test){
+            return next(new ErrorResponse(`familya isim sharif tog'ri imloviy xatolarsiz toliq kiriting. Xatolik sababchisi: ${data.fio}`))
+        }
+    }
+
+    for(let data of datas){
+        await pool.query(`INSERT INTO workers (fio, user_id) VALUES($1, $2)`, [data.fio, req.user.id])
+    }
+
+    return res.status(201).json({
+        success: true,
+        data: "Kiritildi"
+    })
+})
+

@@ -1,17 +1,5 @@
-module.exports = (lastname, firstname, fatherName) => {
-    // Tekshirish uchun RegExp ishlatamiz
-    const isFirstCharUpperCase = /^[A-ZА-ЯЎҒҚҲ]/;
-
-    // Tekshirish
-    const isLastNameCapitalized = isFirstCharUpperCase.test(lastname);
-    const isFirstNameCapitalized = isFirstCharUpperCase.test(firstname);
-    const isFatherNameCapitalized = isFirstCharUpperCase.test(fatherName);
-
-    // Natijani qaytarish
-    return {
-        lastname: isLastNameCapitalized,
-        firstname: isFirstNameCapitalized,
-        fatherName: isFatherNameCapitalized
-    };
+module.exports = (fio) => {
+    const fioPattern = /^[A-ZА-ЯЁЎҚҒҲ][a-zа-яёқғҳ']* [A-ZА-ЯЁЎҚҒҲ][a-zа-яёқғҳ']* [A-ZА-ЯЁЎҚҒҲ][a-zа-яёқғҳ']*(ович|евна|овна|ович|оғли|қизи|og'li|qizi)?$/;
+    return fioPattern.test(fio);
 };
 
