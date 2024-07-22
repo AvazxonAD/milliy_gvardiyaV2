@@ -14,7 +14,7 @@ exports.create = asyncHandler(async (req, res, next) => {
 
         const test = checkUsername(`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`)
         if (!test) {
-            return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz ", 400))
+            return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz kriting", 400))
         }
 
         const testFIO = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2
@@ -121,9 +121,9 @@ exports.updateWorker = asyncHandler(async (req, res, next) => {
         if (!lastname || !firstname || !fatherName, !batalyon) {
             return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
         }
-        const test = checkUsername(lastname.trim(), firstname.trim(), fatherName.trim())
-        if (!test.lastname || !test.firstname || !test.fatherName) {
-            return next(new ErrorResponse("Isim Familya Ochistva bosh harifda bolishi zarur", 400))
+        const test = checkUsername(`${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`)
+        if (!test) {
+            return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz kriting", 400))
         }
 
         const batalyonId = await pool.query(`SELECT id FROM users WHERE username = $1`, [batalyon])

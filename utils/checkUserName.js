@@ -1,5 +1,4 @@
 module.exports = (fio) => {
-    const fioPattern = /^[A-ZА-ЯЁЎҚҒҲ][a-zа-яёқғҳ']* [A-ZА-ЯЁЎҚҒҲ][a-zа-яёқғҳ']* [A-ZА-ЯЁЎҚҒҲ][a-zа-яёқғҳ']*(ович|евна|овна|ович|оғли|қизи|og'li|qizi)?$/;
+    const fioPattern = /^[\p{Lu}][\p{L}'ʼ’]* [\p{Lu}][\p{L}'ʼ’]* [\p{Lu}][\p{L}'ʼ’]*(ович|евна|овна|оғли|қизи|og'li|qizi)?$/u;
     return fioPattern.test(fio);
 };
-
