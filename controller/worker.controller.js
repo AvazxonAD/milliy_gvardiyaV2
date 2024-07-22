@@ -7,6 +7,10 @@ const { returnStringDate } = require("../utils/date.function");
 
 exports.create = asyncHandler(async (req, res, next) => {
     const { workers } = req.body
+    if(!workers || workers.length < 1){
+        return next(new ErrorResponse('sorovlar bosh qolishi mumkin emas', 400))
+    }
+    
     for (let worker of workers) {
         if (!worker.lastname || !worker.firstname || !worker.fatherName) {
             return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
@@ -25,8 +29,11 @@ exports.create = asyncHandler(async (req, res, next) => {
     }
 
     for (let worker of workers) {
-        await pool.query(`INSERT INTO workers(fio, user_id) VALUES($1, $2)
+        const fio = await pool.query(`INSERT INTO workers(fio, user_id) VALUES($1, $2) RETURNING *
             `, [`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`, req.user.id])
+        if(!fio.rows[0]){
+            return next(new ErrorResponse("Server xatolik kiritilmadi", 400))
+        }
     }
 
     return res.status(200).json({

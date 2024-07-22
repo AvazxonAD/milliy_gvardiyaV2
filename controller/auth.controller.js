@@ -108,10 +108,9 @@ exports.updateBatalyons = asyncHandler(async (req, res, next) => {
     // const test = checkPasswordStrength(newPassword)
     // if(test.score < 3){
     //     return next(new ErrorResponse(new ErrorResponse(`${test.feedback}`,400)))
-    // }
+    // }s/y zxm/xzv  
 
     if(username){
-        console.log(1)
         if(batalyon.rows[0].username !== username){
             const test = await pool.query(`SELECT * FROM users WHERE username = $1`, [username.trim()])
             if(test.rows[0]){
@@ -122,7 +121,7 @@ exports.updateBatalyons = asyncHandler(async (req, res, next) => {
 
     const updateUser = await pool.query( `UPDATE users SET username = $1, password = $2 WHERE id = $3 RETURNING *
         `, [username, newPassword, req.params.id])
-    
+        
     return res.status(200).json({
         success: true,
         data: updateUser.rows[0]
