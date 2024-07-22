@@ -368,16 +368,16 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
         return contract  
     })
 
-    let  tasks = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE contract_id = $1
-        `, [req.params.id])
-    const test = blockTasks(tasks.rows)
-    if(test.length >= 1){
-        for(let task of test ){
-            await pool.query(`UPDATE tasks SET inprogress = $1, done = $2, notdone = $3
-                WHERE id = $4
-                `, [false, false, true, task.id])
-        }
-    }
+    // let  tasks = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE contract_id = $1
+    //     `, [req.params.id])
+    // const test = blockTasks(tasks.rows)
+    // if(test.length >= 1){
+    //     for(let task of test ){
+    //         await pool.query(`UPDATE tasks SET inprogress = $1, done = $2, notdone = $3
+    //             WHERE id = $4
+    //             `, [false, false, true, task.id])
+    //     }
+    // }
     let  resulttasks = await pool.query(`SELECT id, battalionname, taskdate, workernumber, inprogress, done, notdone  FROM tasks WHERE contract_id = $1
     `, [req.params.id])
     

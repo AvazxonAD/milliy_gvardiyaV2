@@ -111,9 +111,6 @@ exports.getAllBatalyon = asyncHandler(async (req, res, next) => {
 
 // update workers 
 exports.updateWorker = asyncHandler(async (req, res, next) => {
-    if (!req.user.adminstatus) {
-        return next(new ErrorResponse("siz admin emassiz", 403))
-    }
 
     const worker = await pool.query(`SELECT fio FROM workers WHERE id = $1`, [req.params.id])
     if (req.user.adminstatus) {
@@ -342,7 +339,6 @@ exports.importExcel = asyncHandler(async (req, res, next) => {
         }
         return newRow;
     });
-
     for(data of datas){
         if(!data.fio){
             return next(new ErrorResponse(`sorovlar boshh qolishi mumkin emas. Excel fileni tekshiring`, 400))
@@ -355,10 +351,10 @@ exports.importExcel = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse(`Bu xodim avval kiritilgan: ${data.fio}`, 400))
         }
 
-        const test = checkUsername(data.fio)
-        if(!test){
-            return next(new ErrorResponse(`familya isim sharif tog'ri imloviy xatolarsiz toliq kiriting. Xatolik sababchisi: ${data.fio}`))
-        }
+        // const test = checkUsername(data.fio)
+        // if(!test){
+        //     return next(new ErrorResponse(`familya isim sharif tog'ri imloviy xatolarsiz toliq kiriting. Xatolik sababchisi: ${data.fio}`))
+        // }
     }
 
     for(let data of datas){

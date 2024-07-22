@@ -13,14 +13,14 @@ const { blockTask } = require('../utils/worker.tasks.function')
 exports.getAllTasks = asyncHandler(async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10 
     const page = parseInt(req.query.page) || 1
-    let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE battalionname = $1 `, [req.user.username])
-    let tests = blockTask(taskTest.rows)
-    for (let test of tests) {
-        await pool.query(`UPDATE tasks 
-            SET notdone = $1, done = $2, inprogress = $3
-            WHERE id = $4
-            `, [true, false, false, test.id])
-    }
+    // let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE battalionname = $1 `, [req.user.username])
+    // let tests = blockTask(taskTest.rows)
+    // for (let test of tests) {
+    //     await pool.query(`UPDATE tasks 
+    //         SET notdone = $1, done = $2, inprogress = $3
+    //         WHERE id = $4
+    //         `, [true, false, false, test.id])
+    // }
 
     let tasks = await pool.query(`SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address 
         FROM tasks WHERE battalionname = $1 ORDER BY  taskdate DESC

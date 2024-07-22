@@ -111,6 +111,7 @@ exports.updateBatalyons = asyncHandler(async (req, res, next) => {
     // }
 
     if(username){
+        console.log(1)
         if(batalyon.rows[0].username !== username){
             const test = await pool.query(`SELECT * FROM users WHERE username = $1`, [username.trim()])
             if(test.rows[0]){
