@@ -29,7 +29,7 @@ exports.resultCreate = asyncHandler(async (req, res, next) => {
     const worker_tasks = await pool.query(`SELECT * FROM worker_tasks WHERE ispay = $1 AND pay = $2 AND taskdate >= $3 AND  taskdate <= $4 
         `,[true, false, date1, date2])
     if(worker_tasks.rows.length < 1){
-        return next(new ErrorResponse('ushbu muddat ichida hech bir batalyon ommaviy tadbirda ishtirok etmadi', 400))
+        return next(new ErrorResponse('ushbu muddat ichida hech bir batalyon ommaviy tadbirda ishtirok etmadi yoki hali buyurtmachilar tomonidan pul otkazilmadi', 400))
     }
 
     const command = await pool.query(`INSERT INTO commands (date1, date2, commanddate, commandnumber) VALUES($1, $2, $3, $4) RETURNING *
