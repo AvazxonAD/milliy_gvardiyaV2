@@ -50,7 +50,7 @@ CREATE TABLE contracts (
     ispay BOOLEAN DEFAULT false,
     tasktime INTEGER NOT NULL,
     taskdate DATE NOT NULL,
-    accountnumber VARCHAR(20) NOT NULL,
+    accountnumber VARCHAR(40) NOT NULL,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
