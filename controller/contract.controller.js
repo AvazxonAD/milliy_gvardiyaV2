@@ -549,3 +549,4 @@ exports.forContractBatalyonns = asyncHandler(async (req, res, next) => {
         data: batalyons.rows
     })
 })
+

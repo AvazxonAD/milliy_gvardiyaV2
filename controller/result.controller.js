@@ -25,10 +25,10 @@ exports.resultCreate = asyncHandler(async (req, res, next) => {
     if (!date1 || !date2 || !commandDate) {
         return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
     }
- 
-    const worker_tasks = await pool.query(`SELECT * FROM worker_tasks WHERE ispay = $1 AND pay = $2 AND taskdate >= $3 AND  taskdate <= $4 
-        `,[true, false, date1, date2])
-    if(worker_tasks.rows.length < 1){
+
+    const worker_tasks = await pool.query(`SELECT * FROM worker_tasks WHERE ispay = $1 AND pay = $2 AND taskdate < $3
+        `,[true, false, date2])
+    if(worker_tasks.rows.length === 0){
         return next(new ErrorResponse('ushbu muddat ichida hech bir batalyon ommaviy tadbirda ishtirok etmadi yoki hali buyurtmachilar tomonidan pul otkazilmadi', 400))
     }
 
@@ -38,8 +38,8 @@ exports.resultCreate = asyncHandler(async (req, res, next) => {
     await pool.query(`
         UPDATE worker_tasks  
         SET command_id = $1, pay = $2
-        WHERE ispay = $3 AND pay = $4 AND taskdate >= $5 AND taskdate <= $6
-    `, [command.rows[0].id, true, true, false, date1, date2]);
+        WHERE ispay = $3 AND pay = $4 AND taskdate < $5
+    `, [command.rows[0].id, true, true, false, date2]);
 
     return res.status(200).json({
         success: true,
@@ -65,11 +65,11 @@ exports.getBattalionAndWorkers = asyncHandler(async (req, res, next) => {
     for(let battalion of batalyons.rows){
         const workers = await pool.query(`SELECT DISTINCT(worker_name), SUM(summa) AS allSumma
             FROM worker_tasks 
-            WHERE command_id = $1 AND pay = $2 AND ispay = $3 AND  user_id = $4 
+            WHERE command_id = $1 AND user_id = $2 
             GROUP BY worker_name
-            `,[req.params.id, true, true, battalion.id])
+            `,[req.params.id, battalion.id])
 
-        if(workers.rows.length > 1){
+        if(workers.rows.length !== 0){
             result.push({batalyonName: battalion.username, workers: workers.rows})
         }
     }
@@ -80,23 +80,38 @@ exports.getBattalionAndWorkers = asyncHandler(async (req, res, next) => {
     })
 })
 
-// get all commands 
+// get all commands
 exports.getAllCommand = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
-        return next(new ErrorResponse("siz admin emassiz", 403))
+        return next(new ErrorResponse("Siz admin emassiz", 403));
     }
 
-    const limit = parseInt(req.query.limit) || 10 
-    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page) || 1;
 
-    const commands =  await pool.query(`SELECT id, commandnumber, commanddate FROM commands WHERE status = $1 OFFSET $2 LIMIT $3 `, [false, (page - 1) * limit, limit])
-    let result  = commands.rows.map(command => {
-        command.commanddate = returnStringDate(command.commanddate)
-        return command  
-    })
+    // SQL so'rovi orqali barcha kerakli ma'lumotlarni olish
+    const commandsQuery = `
+        SELECT id, commandnumber, commanddate
+        FROM commands
+        WHERE status = $1
+        ORDER BY commanddate DESC
+        OFFSET $2 LIMIT $3
+    `;
+    const commands = await pool.query(commandsQuery, [false, (page - 1) * limit, limit]);
 
-    const total = await pool.query(`SELECT COUNT(id) AS total FROM commands WHERE status = $1`, [false])
-    
+    const result = commands.rows.map(command => {
+        command.commanddate = returnStringDate(command.commanddate);
+        return command;
+    });
+
+    // Jami ma'lumotlar sonini olish
+    const totalQuery = `
+        SELECT COUNT(id) AS total
+        FROM commands
+        WHERE status = $1
+    `;
+    const total = await pool.query(totalQuery, [false]);
+
     return res.status(200).json({
         success: true,
         pageCount: Math.ceil(total.rows[0].total / limit),
@@ -105,35 +120,43 @@ exports.getAllCommand = asyncHandler(async (req, res, next) => {
         nextPage: Math.ceil(total.rows[0].total / limit) < page + 1 ? null : page + 1,
         backPage: page === 1 ? null : page - 1,
         data: result
-    })
+    });
+});
 
-})
-
-// filter by date 
+// filter by date
 exports.filterByDate = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
-        return next(new ErrorResponse("siz admin emassiz", 403))
+        return next(new ErrorResponse("Siz admin emassiz", 403));
     }
 
-    let {date1, date2} = req.body
-    date1 = returnDate(date1)
-    date2 = returnDate(date2)
-    if(!date1 || !date2){
-       return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
+    let { date1, date2 } = req.body;
+    date1 = returnDate(date1);
+    date2 = returnDate(date2);
+
+    if (!date1 || !date2) {
+        return next(new ErrorResponse("Sana formati noto'g'ri kiritilgan. To'g'ri format: kun.oy.yil. Masalan: 12.12.2024", 400));
     }
 
-    const commands =  await pool.query(`SELECT id, commandnumber, commanddate FROM commands WHERE status = $1 AND commanddate BETWEEN $2 AND $3
-        `, [false, date1, date2])
-    let result  = commands.rows.map(command => {
-        command.commanddate = returnStringDate(command.commanddate)
-        return command  
-    })
+    // Ma'lumotlarni olish uchun SQL so'rovi
+    const commands = await pool.query(
+        `SELECT id, commandnumber, commanddate
+         FROM commands
+         WHERE status = $1 AND commanddate BETWEEN $2 AND $3`,
+        [false, date1, date2]
+    );
+
+    // Natijalarni formatlash
+    const result = commands.rows.map(command => ({
+        ...command,
+        commanddate: returnStringDate(command.commanddate)
+    }));
 
     return res.status(200).json({
         success: true,
         data: result
-    })
-})
+    });
+});
+
 
 // create excel 
 exports.createExcel = asyncHandler(async (req, res, next) => {

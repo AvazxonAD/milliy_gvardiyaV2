@@ -29,19 +29,16 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse(`Xodimlar soni ${task.workernumber} bo'lishi kerak`, 400));
     }
 
-    const workerNames = workers.map(worker => worker.fio);
-    const existingWorkers = await pool.query(
-        `SELECT fio FROM workers WHERE fio = ANY($1) AND user_id = $2`,
-        [workerNames, req.user.id]
-    );
-    const existingWorkerNames = existingWorkers.rows.map(worker => worker.fio);
-    const missingWorkers = workerNames.filter(fio => !existingWorkerNames.includes(fio));
-
-    if (missingWorkers.length > 0) {
-        return next(new ErrorResponse(`Server xatolik: xodim topilmadi: ${missingWorkers.join(', ')}`, 403));
+    for(let worker of workers){
+        if(!worker.fio){
+            return next(new ErrorResponse("Fio topilmadi", 500))
+        }
+        const fio = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2`, [worker.fio, req.user.id])
+        if(!fio.rows[0]){
+            return next(new ErrorResponse("Fio topilmadi", 500))
+        }
     }
 
-    // 4. Ma'lumotlarni kiritish
     const contractResult = await pool.query(
         `SELECT ispay, address FROM contracts WHERE id = $1`,
         [task.contract_id]
@@ -49,12 +46,6 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
     const contract = contractResult.rows[0];
 
     for (let worker of workers) {
-        const workerIdResult = await pool.query(
-            `SELECT id, fio FROM workers WHERE fio = $1 AND user_id = $2`,
-            [worker.fio, req.user.id]
-        );
-        const workerId = workerIdResult.rows[0].id;
-
         await pool.query(
             `INSERT INTO worker_tasks (contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_name, user_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
@@ -74,7 +65,6 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
         );
     }
 
-    // 5. Topshiriq holatini yangilash
     await pool.query(
         `UPDATE tasks SET inprogress = $1, done = $2, notdone = $3 WHERE id = $4`,
         [false, true, false, req.params.id]
@@ -90,7 +80,7 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
 exports.getAlltasksOfWorker = asyncHandler(async (req, res, next) => {
     const worker = await pool.query(`SELECT fio FROM workers WHERE id = $1`, [req.params.id])
 
-    const tasks = await pool.query(`SELECT taskdate, summa, clientname, ispay, address 
+    const tasks = await pool.query(`SELECT taskdate, summa, clientname, pay, address 
         FROM worker_tasks WHERE worker_name = $1`, [worker.rows[0].fio])
     let result = tasks.rows.map(task => {
         task.taskdate = returnStringDate(task.taskdate)
@@ -120,7 +110,7 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
     }
 
-    const tasks = await pool.query(`SELECT  taskdate, summa, clientname, ispay, address  
+    const tasks = await pool.query(`SELECT  taskdate, summa, clientname, pay, address  
         FROM worker_tasks 
         WHERE worker_name = $1 AND taskdate BETWEEN $2 AND $3
         `, [worker.rows[0].fio, date1, date2])
@@ -247,6 +237,7 @@ exports.forExcelCreatePage = asyncHandler(async (req, res, next) => {
         ) AS worker_sums
         ORDER BY total_sum ASC;
     `);
+
     // Har bir ishchi uchun ma'lumotlarni to'plash
     for (let worker of workerNames.rows) {
         const paySumma = await pool.query(`
@@ -274,3 +265,5 @@ exports.forExcelCreatePage = asyncHandler(async (req, res, next) => {
         data: resultArray
     })
 })
+
+// filter date 
