@@ -559,46 +559,14 @@ exports.search = asyncHandler(async (req, res, next) => {
     }
 
     let contractQuery = await pool.query(
-        `SELECT id, contractnumber, contractdate, clientname, address, ispay FROM contracts WHERE clientname = $1 ORDER BY createdat ASC`, 
+        `SELECT clientname, clientaddress, clientmfo, clientaccount, clientstr, treasuryaccount, address, timelimit
+        FROM contracts WHERE clientname = $1
+        ORDER BY createdat DESC`, 
         [clientName.trim()]
     );
 
-    if (contractQuery.rows.length === 0) {
-        return next(new ErrorResponse("Shartnoma topilmadi", 404));
-    }
-
-    let contract = contractQuery.rows[0];
-    contract.contractdate = returnStringDate(contract.contractdate);
-
-    let tasksQuery = await pool.query(
-        `SELECT id, battalionname, taskdate, workernumber, inprogress, done, notdone 
-        FROM tasks 
-        WHERE contract_id = $1`, 
-        [contractId]
-    );
-
-    let iibTasksQuery = await pool.query(
-        `SELECT id, battalionname, taskdate, workernumber 
-        FROM iib_tasks 
-        WHERE contract_id = $1`, 
-        [contractId]
-    );
-
-    let tasks = tasksQuery.rows.map(task => {
-        task.taskdate = returnStringDate(task.taskdate);
-        return task;
-    });
-
-    let iibTasks = iibTasksQuery.rows.map(task => {
-        task.taskdate = returnStringDate(task.taskdate);
-        return task;
-    });
-
-    let allTasks = tasks.concat(iibTasks);
-
     return res.status(200).json({
         success: true,
-        data: [contract],
-        tasks: allTasks
+        data: contractQuery.rows[0],
     });
 })

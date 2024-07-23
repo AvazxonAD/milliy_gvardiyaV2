@@ -14,7 +14,8 @@ const {
     paymentContract,
     update,
     givingTimeToTask,
-    forContractBatalyonns
+    forContractBatalyonns,
+    search
 } = require('../controller/contract.controller')
 
 router.post("/create", protect, create)
@@ -28,5 +29,6 @@ router.get('/payment/contract/:id', protect, paymentContract)
 router.put('/update/:id', protect, update)
 router.post('/giving/time/to/task/:id', protect, givingTimeToTask)
 router.get('/get/all/batalyon', protect, forContractBatalyonns)
+router.post("/search", protect, search)
 
 module.exports = router
