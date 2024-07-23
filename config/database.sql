@@ -88,7 +88,7 @@ CREATE TABLE worker_tasks (
     address VARCHAR(400) NOT NULL,
     pay BOOLEAN DEFAULT false,
     command_id INTEGER REFERENCES commands(id),
-    user_id INTEGER REFERENCES users(id),
+    user_id INTEGER NOT NUll,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

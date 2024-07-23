@@ -5,13 +5,13 @@ const protect = require('../middleware/auth')
 
 const {
     create,
-    getAllAccountNumber,
+    getAllAccountNumbers,
     update,
     deleteAccountNumber,
 } = require('../controller/accountNumber.controller')
 
 router.post("/create", protect, create)
-router.get('/get/all', protect, getAllAccountNumber)
+router.get('/get/all', protect, getAllAccountNumbers)
 router.put("/update/:id", protect, update)
 router.delete("/delete/:id", protect, deleteAccountNumber)
 

@@ -1,9 +1,7 @@
 const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const pool = require("../config/db");
-const path = require('path')
 const xlsx = require('xlsx')
-const fs = require('fs')
 
 const {
     returnDate,
@@ -16,53 +14,77 @@ const {
 
 // push worker
 exports.pushWorker = asyncHandler(async (req, res, next) => {
-    const task = await pool.query(`SELECT * FROM tasks WHERE id = $1 AND battalionname = $2`, [req.params.id, req.user.username])
-    if (task.rows[0].notdone || task.rows[0].done) {
-        return next(new ErrorResponse('bu topshiriq vaqtida bajarilmagan admin bilan bog"laning yoki allaqachon  bajarilgan topshiriq', 400))
+    const { workers } = req.body;
+
+    const taskResult = await pool.query(
+        `SELECT * FROM tasks WHERE id = $1 AND battalionname = $2`,
+        [req.params.id, req.user.username]
+    );
+    const task = taskResult.rows[0];
+    if (!task || task.notdone || task.done) {
+        return next(new ErrorResponse('Bu topshiriq vaqtida bajarilmagan yoki allaqachon bajarilgan', 400));
     }
 
-    const { workers } = req.body
-
-    if (task.rows[0].workernumber !== workers.length) {
-        return next(new ErrorResponse(`xodimlar soni ${task.rows[0].workernumber} bolishi kerak`, 400))
+    if (task.workernumber !== workers.length) {
+        return next(new ErrorResponse(`Xodimlar soni ${task.workernumber} bo'lishi kerak`, 400));
     }
+
+    const workerNames = workers.map(worker => worker.fio);
+    const existingWorkers = await pool.query(
+        `SELECT fio FROM workers WHERE fio = ANY($1) AND user_id = $2`,
+        [workerNames, req.user.id]
+    );
+    const existingWorkerNames = existingWorkers.rows.map(worker => worker.fio);
+    const missingWorkers = workerNames.filter(fio => !existingWorkerNames.includes(fio));
+
+    if (missingWorkers.length > 0) {
+        return next(new ErrorResponse(`Server xatolik: xodim topilmadi: ${missingWorkers.join(', ')}`, 403));
+    }
+
+    // 4. Ma'lumotlarni kiritish
+    const contractResult = await pool.query(
+        `SELECT ispay, address FROM contracts WHERE id = $1`,
+        [task.contract_id]
+    );
+    const contract = contractResult.rows[0];
 
     for (let worker of workers) {
-        const test = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2`, [worker.fio, req.user.id])
-        if (!test.rows[0]) {
-            return next(new ErrorResponse(`server xatolik xodim topilmadi: ${worker.fio}`, 403))
-        }
+        const workerIdResult = await pool.query(
+            `SELECT id, fio FROM workers WHERE fio = $1 AND user_id = $2`,
+            [worker.fio, req.user.id]
+        );
+        const workerId = workerIdResult.rows[0].id;
+
+        await pool.query(
+            `INSERT INTO worker_tasks (contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_name, user_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+            [
+                task.contract_id,
+                task.tasktime,
+                task.allmoney / task.workernumber,
+                task.taskdate,
+                task.clientname,
+                contract.ispay,
+                (task.allmoney / task.workernumber) / task.tasktime,
+                contract.address,
+                task.id,
+                worker.fio,
+                req.user.id
+            ]
+        );
     }
 
-    for (let worker of workers) {
-        let contract = await pool.query(`SELECT ispay, address FROM contracts WHERE id = $1`, [task.rows[0].contract_id])
-        let ispay = contract.rows[0].ispay
-        const id = await pool.query(`SELECT id, fio FROM workers WHERE fio = $1 AND user_id = $2`, [worker.fio, req.user.id])
-        await pool.query(`
-            INSERT INTO worker_tasks (contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_name, user_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            `, [
-            task.rows[0].contract_id,
-            task.rows[0].tasktime,
-            task.rows[0].allmoney / task.rows[0].workernumber,
-            task.rows[0].taskdate,
-            task.rows[0].clientname,
-            ispay,
-            (task.rows[0].allmoney / task.rows[0].workernumber) / task.rows[0].tasktime,
-            contract.rows[0].address,
-            task.rows[0].id,
-            id.rows[0].fio,
-            req.user.id
-        ])
-        await pool.query(`UPDATE tasks SET inprogress = $1, done = $2, notdone = $3
-            WHERE id = $4
-            `, [false, true, false, req.params.id])
-    }
+    // 5. Topshiriq holatini yangilash
+    await pool.query(
+        `UPDATE tasks SET inprogress = $1, done = $2, notdone = $3 WHERE id = $4`,
+        [false, true, false, req.params.id]
+    );
+
     return res.status(200).json({
         success: true,
-        data: "xodimlar jalb etildi"
-    })
-})
+        data: "Xodimlar jalb etildi"
+    });
+});
 
 // get all tasks of worker 
 exports.getAlltasksOfWorker = asyncHandler(async (req, res, next) => {

@@ -1,6 +1,6 @@
 const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
-const checkUsername = require('../utils/checkUserName');
+//const checkUsername = require('../utils/checkUserName');
 const pool = require("../config/db");
 const xlsx = require('xlsx');
 const { returnStringDate } = require("../utils/date.function");
@@ -10,16 +10,16 @@ exports.create = asyncHandler(async (req, res, next) => {
     if(!workers || workers.length < 1){
         return next(new ErrorResponse('sorovlar bosh qolishi mumkin emas', 400))
     }
-    
+
     for (let worker of workers) {
         if (!worker.lastname || !worker.firstname || !worker.fatherName) {
             return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
         }
 
-        const test = checkUsername(`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`)
-        if (!test) {
-            return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz kriting", 400))
-        }
+        // const test = checkUsername(`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`)
+        // if (!test) {
+        //     return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz kriting", 400))
+        // }
 
         const testFIO = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2
             `, [`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`, req.user.id])
@@ -125,10 +125,10 @@ exports.updateWorker = asyncHandler(async (req, res, next) => {
         if (!lastname || !firstname || !fatherName, !batalyon) {
             return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
         }
-        const test = checkUsername(`${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`)
-        if (!test) {
-            return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz kriting", 400))
-        }
+        // const test = checkUsername(`${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`)
+        // if (!test) {
+        //     return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz kriting", 400))
+        // }
 
         const batalyonId = await pool.query(`SELECT id FROM users WHERE username = $1`, [batalyon])
         if (!batalyonId.rows[0]) {
@@ -157,10 +157,11 @@ exports.updateWorker = asyncHandler(async (req, res, next) => {
         if (!lastname || !firstname || !fatherName) {
             return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
         }
-        const test = checkUsername(lastname.trim(), firstname.trim(), fatherName.trim())
-        if (!test.lastname || !test.firstname || !test.fatherName) {
-            return next(new ErrorResponse("Isim Familya Ochistva bosh harifda bolishi zarur", 400))
-        }
+        
+        // const test = checkUsername(`${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`)
+        // if (!test) {
+        //     return next(new ErrorResponse("Isim Familya Ochistva bosh harifda bolishi zarur", 400))
+        // }
 
         if (worker.rows[0].fio !== `${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`) {
             const testFIO = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2
@@ -260,69 +261,44 @@ exports.searchWorker = asyncHandler(async (req, res, next) => {
 })
 
 exports.createExcel = asyncHandler(async (req, res, next) => {
-    if (!req.user.adminstatus) {
-        return next(new ErrorResponse("siz admin emassiz", 403))
+    let workers;
+    if (req.user.adminstatus) {
+        if (req.query.battalion) {
+            workers = await pool.query(`SELECT workers.fio, users.username FROM workers JOIN users ON workers.user_id = users.id WHERE users.id = $1`, [req.query.id]);
+        } else {
+            workers = await pool.query(`SELECT workers.fio, users.username FROM workers JOIN users ON workers.user_id = users.id`);
+        }
+    } else {
+        workers = await pool.query(`SELECT workers.fio, users.username FROM workers JOIN users ON workers.user_id = users.id WHERE users.id = $1`, [req.user.id]);
     }
 
-    let workers = null
-    if(req.query.battalion){
-        workers = await pool.query(` SELECT workers.fio, users.username  FROM workers JOIN users ON workers.user_id = users.id WHERE users.id = $1`, [req.query.id]);
-    }else{
-        workers = await pool.query(` SELECT workers.fio, users.username FROM workers JOIN users ON workers.user_id = users.id`);
-    }
-
-    // Excel faylni yaratish
-    const worksheetData = [];
-
-    // Ma'lumotlar qismi
-    z.rows.forEach(data => {
-        worksheetData.push({
-            'Xodim': data.fio,
-            'Batalyon': data.username
-        });
-    });
+    const worksheetData = workers.rows.map(data => ({
+        'Xodim': data.fio,
+        'Batalyon': data.username
+    }));
 
     const worksheet = xlsx.utils.json_to_sheet(worksheetData);
-
-    // Ustunlar kengligini sozlash
-    worksheet['!cols'] = [
-        { width: 80 },
-        { width: 80 },
-    ];
-
-    // Workbook yaratish
+    worksheet['!cols'] = [{ width: 80 }, { width: 80 }];
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Xodimlar');
 
-    // Faylni yozish
     const buffer = xlsx.write(workbook, { type: 'buffer' });
-
-    // Faylni ma'lumotlar bazasiga saqlash
     const filename = `${Date.now()}_data.xlsx`;
 
-    await pool.query(`
-        INSERT INTO files (filename, file_data)
-        VALUES ($1, $2)
-    `, [filename, buffer]);
+    await pool.query(`INSERT INTO files (filename, file_data) VALUES ($1, $2)`, [filename, buffer]);
 
-    const fileResult = await pool.query(`
-        SELECT filename, file_data
-        FROM files
-        WHERE filename = $1
-    `, [filename]);
+    const fileResult = await pool.query(`SELECT filename, file_data FROM files WHERE filename = $1`, [filename]);
 
     if (fileResult.rows.length === 0) {
         return res.status(404).json({ message: 'Fayl topilmadi' });
     }
 
-    // Faylni yuklab olish
     const { file_data } = fileResult.rows[0];
     res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.send(file_data);
 });
 
-// import excel data create 
 exports.importExcel = asyncHandler(async (req, res, next) => {
     if (!req.file) {
         req.flash('error', 'Fayl yuklanmadi yoki tanlanmadi');
@@ -330,47 +306,42 @@ exports.importExcel = asyncHandler(async (req, res, next) => {
     }
 
     const fileBuffer = req.file.buffer;
-
-    // Excel faylini o'qish
     const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
-
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    let data = xlsx.utils.sheet_to_json(sheet);
-
-    const datas = data.map(row => {
+    const data = xlsx.utils.sheet_to_json(sheet).map(row => {
         const newRow = {};
-        for (let key in row) {
-            const newKey = key.trim();
-            newRow[newKey] = row[key];
+        for (const key in row) {
+            newRow[key.trim()] = row[key];
         }
         return newRow;
     });
-    for(data of datas){
-        if(!data.fio){
-            return next(new ErrorResponse(`sorovlar boshh qolishi mumkin emas. Excel fileni tekshiring`, 400))
+
+    for (const rowData of data) {
+        if (!rowData.fio) {
+            return next(new ErrorResponse(`Surovlar bo'sh qolishi mumkin emas. Excel faylni tekshiring`, 400));
         }
-        if(typeof data.fio !== "string"){
-            return next(new ErrorResponse(`malumotlar text formatida bolishi kerak excel fileni tekshiring. Xato sababchisi : ${data.fio}`, 400))
-        }
-        const fio = await pool.query(`SELECT * FROM workers WHERE user_id = $1 AND fio = $2`, [req.user.id, data.fio.trim()])
-        if(fio.rows[0]){
-            return next(new ErrorResponse(`Bu xodim avval kiritilgan: ${data.fio}`, 400))
+        if (typeof rowData.fio !== "string") {
+            return next(new ErrorResponse(`Ma'lumotlar text formatida bo'lishi kerak. Xato sababchisi: ${rowData.fio}`, 400));
         }
 
-        // const test = checkUsername(data.fio)
-        // if(!test){
-        //     return next(new ErrorResponse(`familya isim sharif tog'ri imloviy xatolarsiz toliq kiriting. Xatolik sababchisi: ${data.fio}`))
-        // }
+        const fioResult = await pool.query(`SELECT * FROM workers WHERE user_id = $1 AND fio = $2`, [req.user.id, rowData.fio.trim()]);
+        if (fioResult.rows[0]) {
+            return next(new ErrorResponse(`Bu xodim avval kiritilgan: ${rowData.fio}`, 400));
+        }
     }
 
-    for(let data of datas){
-        await pool.query(`INSERT INTO workers (fio, user_id) VALUES($1, $2)`, [data.fio, req.user.id])
+    for (const rowData of data) {
+        const fio = rowData.fio.trim();
+        if (fio.toLowerCase() === 'vakant' || fio.toLowerCase() === 'вакант') {
+            continue;
+        }
+
+        await pool.query(`INSERT INTO workers (fio, user_id) VALUES($1, $2)`, [fio, req.user.id]);
     }
 
     return res.status(201).json({
         success: true,
         data: "Kiritildi"
-    })
-})
-
+    });
+}); 

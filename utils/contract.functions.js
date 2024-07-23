@@ -83,15 +83,18 @@ exports.blockTasks = (tasks) => {
     return result
 }
 
-// check date with now date 
+// check date with now date
 exports.checkDateWithNowDate = (date) => {
-    if(date < new Date()){
+    const inputDate = new Date(date);
+    
+    if (isNaN(inputDate.getTime())) {
         return false;
     }
-    return true
+    
+    return inputDate >= new Date();
 }
 
-exports.chechBattalionName = (battalions) => {
+exports.checkBattalionName = (battalions) => {
     const nameSet = new Set();
     
     for (const battalion of battalions) {
