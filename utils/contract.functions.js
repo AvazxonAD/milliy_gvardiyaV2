@@ -43,6 +43,7 @@ exports.returnBattalion = (oneTimeMoney, battalions, discount, taskTime) => {
         let allMoney = 0;
         let discountMoney = null;
         let money = oneTimeMoney * taskTime * battalion.workerNumber;
+        money = Math.round(money * 100) / 100
         if (discount) {
             discountMoney = money * (discount / 100);
             discountMoney += Math.round(discountMoney * 100) / 100     

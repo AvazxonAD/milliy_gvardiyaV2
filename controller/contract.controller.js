@@ -1,5 +1,7 @@
 const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
+const xlsx = require('xlsx')
+
 const {
     returnDate,
     returnStringDate,
@@ -36,7 +38,6 @@ exports.create = asyncHandler(async (req, res, next) => {
         accountNumber
     } = req.body;
 
-    // Required fields validation
     if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }   
@@ -569,4 +570,352 @@ exports.search = asyncHandler(async (req, res, next) => {
         success: true,
         data: contractQuery.rows[0],
     });
+})
+
+exports.importExcelData = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403));
+    }
+    
+    if (!req.file) {
+        return next(new ErrorResponse("file yuklanmadi", 400));
+    }
+    
+    const fileBuffer = req.file.buffer;
+    const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    
+    const datas = xlsx.utils.sheet_to_json(sheet, { defval: null }).map(row => {
+        const newRow = {};
+        const battalions = [];
+    
+        for (const key in row) {
+            if (["81109", "81140", "84007", "89071", "98157", "98162", "Тошкент шаҳар МГ", "Toshkent Shahar IIBB"].includes(key)) {
+                if (row[key] !== null && row[key] !== 0) {
+                    battalions.push({ name: key.trim(), workerNumber: row[key] });
+                }
+            } else {
+                newRow[key.trim()] = row[key];
+            }
+        }
+    
+        if (battalions.length > 0) {
+            newRow.battalions = battalions;
+        }
+    
+        return newRow;
+    });
+
+    for (let data of datas) {
+        if (!data || !data.clientname || !data.contractnumber || !data.contractdate || !data.tasktime || !data.timelimit || !data.taskdate) {
+            return next(new ErrorResponse("Sorovlar bosh qolishi mumkin emas excel fileni tekshiring", 400));
+        }
+    }
+    
+    let accountnumber = await pool.query(`SELECT accountnumber FROM accountnumber`);
+    accountnumber = accountnumber.rows[0].accountnumber;
+    
+    for (let data of datas) {
+        const isNull = checkBattailonsIsNull(data.battalions);
+        if (!isNull) {
+            return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
+        }
+    
+        const testIsSame = checkBattalionName(data.battalions);
+        if (!testIsSame) {
+            return next(new ErrorResponse("Bitta shartnomada bitta organ bir marta tanlanishi kerak", 400));
+        }
+    
+        let contractDate = returnDate(data.contractdate.toString().trim());
+        let taskDate = returnDate(data.taskdate.toString().trim());
+    
+        if (!contractDate || !taskDate) {
+            return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
+        }
+    
+        const bxm = await pool.query(`SELECT * FROM bxm`);
+        const oneTimeMoney = Math.round((bxm.rows[0].summa * 0.07) * 100) / 100;
+    
+        const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, data.battalions, null, data.tasktime);
+        const forBattalion = returnBattalion(oneTimeMoney, data.battalions, null, data.tasktime);
+    
+        const contract = await pool.query(
+            `INSERT INTO contracts (
+                contractnumber, 
+                contractdate, 
+                clientname, 
+                timelimit, 
+                address, 
+                discount,
+                allworkernumber,
+                allmoney,
+                timemoney,
+                money,
+                discountmoney,
+                tasktime,
+                taskdate,
+                accountnumber
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            RETURNING *`, 
+            [
+                data.contractnumber, 
+                contractDate, 
+                data.clientname.trim(),  
+                data.timelimit, 
+                data.address ? data.address.trim() : null,  
+                null,
+                forContract.workerNumber,
+                forContract.allMoney,
+                oneTimeMoney,
+                forContract.money,
+                forContract.discountMoney,
+                data.tasktime,
+                returnDate(data.taskdate.toString().trim()),
+                accountnumber
+            ]
+        );
+    
+        for (let battalion of forBattalion) {
+            const user = await pool.query(`SELECT status FROM users WHERE username = $1`, [battalion.name]);
+            let tableName = null;
+            if (user.rows[0].status) {
+                tableName = `iib_tasks`;
+            } else {
+                tableName = `tasks`;
+            }
+    
+            await pool.query(
+                `INSERT INTO ${tableName} (
+                    contract_id,
+                    contractnumber,
+                    clientname,
+                    taskdate,
+                    workernumber,
+                    timemoney,
+                    tasktime,
+                    allmoney,
+                    money,
+                    discountmoney,
+                    battalionname,
+                    address
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, 
+                [
+                    contract.rows[0].id,
+                    data.contractnumber,
+                    data.clientname,
+                    taskDate,
+                    battalion.workerNumber,
+                    battalion.oneTimeMoney,
+                    battalion.taskTime,
+                    battalion.allMoney,
+                    battalion.money,
+                    battalion.discountMoney,
+                    battalion.name,
+                    data.address ? data.address.trim() : null
+                ]
+            );
+        }
+    }
+    
+    return res.status(200).json({
+        success: true,
+        datas
+    });
+})
+
+exports.importExcelData = asyncHandler(async (req, res, next) => {
+    if (!req.user || !req.user.adminstatus) {
+        return next(new ErrorResponse("Siz admin emassiz", 403));
+    }
+
+    // Tekshirib ko'ring, req.file mavjud
+    if (!req.file) {
+        return next(new ErrorResponse("Fayl yuklanmadi", 400));
+    }
+
+    const fileBuffer = req.file.buffer;
+
+    // xlsx.read yordamida faylni o'qish
+    let workbook;
+    try {
+        workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+    } catch (error) {
+        return next(new ErrorResponse("Faylni o'qishda xatolik yuz berdi", 500));
+    }
+
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    // Excel jadvalidan ma'lumotlarni o'qish
+    let datas;
+    try {
+        datas = xlsx.utils.sheet_to_json(sheet, { defval: null }).map(row => {
+            const newRow = {};
+            const battalions = [];
+
+            for (const key in row) {
+                if (["81109", "81140", "84007", "89071", "98157", "98162", "Тошкент шаҳар МГ", "Toshkent Shahar IIBB"].includes(key)) {
+                    if (row[key] !== null && row[key] !== 0) {
+                        battalions.push({ name: key.trim(), workerNumber: row[key] });
+                    }
+                } else {
+                    newRow[key.trim()] = row[key];
+                }
+            }
+
+            if (battalions.length > 0) {
+                newRow.battalions = battalions;
+            }
+
+            return newRow;
+        });
+    } catch (error) {
+        return next(new ErrorResponse("Excel faylni o'qishda xatolik yuz berdi", 500));
+    }
+
+    
+    let accountnumberResult = await pool.query(`SELECT accountnumber FROM accountnumber`);
+    let accountnumber = accountnumberResult.rows[0].accountnumber;
+    
+    // For loop to process each data entry
+    for (let data of datas) {
+        const isNull = checkBattailonsIsNull(data.battalions);
+        if (!isNull) {
+            return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
+        }
+    
+        const testIsSame = checkBattalionName(data.battalions);
+        if (!testIsSame) {
+            return next(new ErrorResponse("Bitta shartnomada bitta organ bir marta tanlanishi kerak", 400));
+        }
+        
+        let contractDate = returnDate(data.contractdate.trim());
+        let taskDate = returnDate(data.taskdate.trim());
+        if (!contractDate || !taskDate) {
+            return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
+        }
+    
+        const bxm = await pool.query(`SELECT * FROM bxm`);
+        const oneTimeMoney = Math.round((bxm.rows[0].summa * 0.07) * 100) / 100;
+    
+        const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, data.battalions, null, data.tasktime);
+        const forBattalion = returnBattalion(oneTimeMoney, data.battalions, null, data.tasktime);
+    
+        const contractResult = await pool.query(
+            `INSERT INTO contracts (
+                contractnumber, 
+                contractdate, 
+                clientname, 
+                timelimit, 
+                address, 
+                discount,
+                allworkernumber,
+                allmoney,
+                timemoney,
+                money,
+                discountmoney,
+                tasktime,
+                taskdate,
+                accountnumber
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            RETURNING *`, 
+            [
+                data.contractnumber, 
+                contractDate, 
+                data.clientname.trim(),  
+                data.timelimit, 
+                data.address ? data.address.trim() : 'address',  
+                null,
+                forContract.workerNumber,
+                forContract.allMoney,
+                oneTimeMoney,
+                forContract.money,
+                forContract.discountMoney,
+                data.tasktime,
+                returnDate(data.taskdate.toString().trim()),
+                accountnumber
+            ]
+        );
+    
+        // For loop to insert battalion data
+        for (let j = 0; j < forBattalion.length; j++) {
+            const battalion = forBattalion[j];
+            const userResult = await pool.query(`SELECT status FROM users WHERE username = $1`, [battalion.name]);
+            let tableName = null;
+            if (userResult.rows[0].status) {
+                tableName = `iib_tasks`;
+            } else {
+                tableName = `tasks`;
+            }
+            await pool.query(
+                `INSERT INTO ${tableName} (
+                    contract_id,
+                    contractnumber,
+                    clientname,
+                    taskdate,
+                    workernumber,
+                    timemoney,
+                    tasktime,
+                    allmoney,
+                    money,
+                    discountmoney,
+                    battalionname,
+                    address
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, 
+                [
+                    contractResult.rows[0].id,
+                    data.contractnumber,
+                    data.clientname,
+                    taskDate,
+                    battalion.workerNumber,
+                    battalion.oneTimeMoney,
+                    battalion.taskTime,
+                    battalion.allMoney,
+                    battalion.money,
+                    battalion.discountMoney,
+                    battalion.name,
+                    data.address ? data.address.trim() : 'address'
+                ]
+            );
+        }
+    }
+    
+    return res.status(200).json({
+        success: true,
+        datas
+    });
+});
+
+// update contracts info 
+exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
+    const {address, contractNumber, contractDate, clientName, clientAccount, clientAddress, clientMFO, clientSTR, treasuryAccount, timeLimit, accountNumber} = req.body
+    
+    if (!contractNumber || !contractDate || !clientName || !timeLimit || !address|| !accountNumber) {
+        return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
+    }
+    let date = returnDate(contractDate.toString().trim())
+
+    const contract = await pool.query(`UPDATE contracts 
+        SET contractnumber = $1, contractdate = $2, clientname= $3, timelimit = $4, clientaccount = $5, clientaddress = $6, clientmfo = $7, clientstr = $8, treasuryaccount = $9, accountnumber = $10, address = $11
+        WHERE id = $12
+        RETURNING *
+        `, [
+            contractNumber,
+            date,
+            clientName,
+            timeLimit,
+            clientAccount,
+            clientAddress,
+            clientMFO,
+            clientSTR,
+            treasuryAccount,
+            accountNumber,
+            address,
+            req.params.id
+    ])
+    return res.status(200).json({
+        success: true,
+        data: contract.rows[0]
+    })
 })

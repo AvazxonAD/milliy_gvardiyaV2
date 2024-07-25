@@ -13,6 +13,7 @@ app.use(cors())
 require('./utils/createAdmin')()
 require("./utils/createBxm")()
 require("./utils/createBattalions")()
+require('./utils/create.accountnumber')()
 
 app.use(express.static(path.join(__dirname, 'public')))
 

@@ -4,7 +4,8 @@ CREATE TABLE users (
     adminstatus BOOLEAN DEFAULT false,
     password VARCHAR(100) NOT NULL,
     -- CHECK (LENGTH(password) >= 8)
-    createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    status BOOLEAN DEFAULT false
 );
 
 CREATE TABLE bxm (
@@ -31,16 +32,16 @@ CREATE TABLE workers (
 
 CREATE TABLE contracts (
     id BIGSERIAL NOT NULL PRIMARY KEY,
-    contractnumber INTEGER NOT NULL,
+    contractnumber VARCHAR(10) NOT NULL,
     contractdate DATE NOT NULL,
     clientname VARCHAR(300) NOT NULL,
-    clientaddress VARCHAR(400),
+    clientaddress VARCHAR(400), 
     clientmfo INTEGER,
     clientaccount VARCHAR(23),
     clientstr INTEGER,
     treasuryaccount VARCHAR(100),
     timelimit VARCHAR(500) NOT NULL,
-    address VARCHAR(500) NOT NULL,
+    address VARCHAR(500),
     discount NUMERIC,
     allworkernumber INTEGER NOT NULL,
     allmoney NUMERIC NOT NULL,
@@ -48,7 +49,7 @@ CREATE TABLE contracts (
     money NUMERIC NOT NULL,
     discountmoney NUMERIC,
     ispay BOOLEAN DEFAULT false,
-    tasktime INTEGER NOT NULL,
+    tasktime NUMERIC NOT NULL,
     taskdate DATE NOT NULL,
     accountnumber VARCHAR(40) NOT NULL,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
@@ -58,12 +59,12 @@ CREATE TABLE tasks (
     id BIGSERIAL NOT NULL  PRIMARY KEY,
     battalionname VARCHAR(200) NOT NULL,
     contract_id INTEGER REFERENCES contracts(id) ON DELETE CASCADE,
-    contractnumber INTEGER NOT NULL,
+    contractnumber VARCHAR(10) NOT NULL,
     clientName VARCHAR(300) NOT NULL,
     taskDate DATE NOT NULL,
     workernumber INTEGER NOT NULL,
     timemoney INTEGER NOT NULL,
-    tasktime INTEGER NOT NULL,
+    tasktime NUMERIC NOT NULL,
     allmoney INTEGER NOT NULL,
     discountmoney INTEGER,
     money INTEGER NOT NULL,
@@ -80,7 +81,7 @@ CREATE TABLE worker_tasks (
     task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE, 
     onetimemoney INTEGER NOT NULL,
     contract_id INTEGER REFERENCES contracts(id) ON DELETE CASCADE,
-    tasktime INTEGER NOT NULL,
+    tasktime NUMERIC NOT NULL,
     summa INTEGER NOT NULL,
     taskdate DATE NOT NULL,
     clientname VARCHAR(200) NOT NULL,
@@ -96,12 +97,12 @@ CREATE TABLE iib_tasks (
     id BIGSERIAL NOT NULL  PRIMARY KEY,
     battalionname VARCHAR(200) NOT NULL,
     contract_id INTEGER REFERENCES contracts(id) ON DELETE CASCADE,
-    contractnumber INTEGER NOT NULL,
+    contractnumber VARCHAR(10) NOT NULL,
     clientname VARCHAR(300) NOT NULL,
     taskdate DATE NOT NULL,
     workernumber INTEGER NOT NULL,
     timemoney INTEGER NOT NULL,
-    tasktime INTEGER NOT NULL,
+    tasktime NUMERIC NOT NULL,
     allmoney INTEGER NOT NULL,
     discountmoney INTEGER,
     money INTEGER NOT NULL,
@@ -114,7 +115,7 @@ CREATE TABLE iib_tasks (
 
 CREATE TABLE accountNumber(
     id BIGSERIAL NOT NULL PRIMARY KEY,
-    accountnumber VARCHAR(20) NOT NULL,
+    accountnumber VARCHAR(50) NOT NULL,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

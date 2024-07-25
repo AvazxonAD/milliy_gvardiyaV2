@@ -301,8 +301,7 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
 
 exports.importExcel = asyncHandler(async (req, res, next) => {
     if (!req.file) {
-        req.flash('error', 'Fayl yuklanmadi yoki tanlanmadi');
-        return res.redirect('/sms/page');
+        return next(new ErrorResponse("file yuklanmadi", 400))
     }
 
     const fileBuffer = req.file.buffer;
