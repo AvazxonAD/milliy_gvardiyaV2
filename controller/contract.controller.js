@@ -201,7 +201,6 @@ exports.update = asyncHandler(async (req, res, next) => {
     // Calculate contract details
     const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, battalions, discount, taskTime);
     const forBattalion = returnBattalion(oneTimeMoney, battalions, discount, taskTime);
-
     // Update contract
     const contract = await pool.query(
         `UPDATE contracts SET 
@@ -250,14 +249,21 @@ exports.update = asyncHandler(async (req, res, next) => {
     await pool.query(`DELETE FROM tasks WHERE contract_id = $1`, [req.params.id]);
     await pool.query(`DELETE FROM iib_tasks WHERE contract_id = $1`, [req.params.id]);
 
-    // Insert new tasks
-    const insertTask = async (table, battalion) => {
+    for (let battalion of forBattalion) {
+        let tableName = null
+        const user = await pool.query(`SELECT status FROM users WHERE username = $1`, [battalion.name])
+        if(user.rows[0].status){
+            tableName = `iib_tasks`
+        }else{
+            tableName = `tasks`
+        }
+        
         await pool.query(
-            `INSERT INTO ${table} (
+            `INSERT INTO ${tableName} (
                 contract_id,
                 contractnumber,
                 clientname,
-                taskDate,
+                taskdate,
                 workernumber,
                 timemoney,
                 tasktime,
@@ -266,7 +272,7 @@ exports.update = asyncHandler(async (req, res, next) => {
                 discountmoney,
                 battalionname,
                 address
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, 
             [
                 contract.rows[0].id,
                 contractNumber,
@@ -282,15 +288,6 @@ exports.update = asyncHandler(async (req, res, next) => {
                 address
             ]
         );
-    };
-
-    for (const battalion of forBattalion) {
-        const user = await pool.query(`SELECT status FROM users WHERE username = $1`, [battalion.name])
-        if (user.rows[0].status) {
-            await insertTask('iib_tasks', battalion);
-        } else {
-            await insertTask('tasks', battalion);
-        }
     }
 
     return res.status(201).json({

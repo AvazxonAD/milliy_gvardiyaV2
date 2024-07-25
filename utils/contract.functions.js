@@ -46,8 +46,8 @@ exports.returnBattalion = (oneTimeMoney, battalions, discount, taskTime) => {
         money = Math.round(money * 100) / 100
         if (discount) {
             discountMoney = money * (discount / 100);
-            discountMoney += Math.round(discountMoney * 100) / 100     
-            allMoney = money - discountMoney      
+            discountMoney = Math.round(discountMoney * 100) / 100     
+            allMoney = money - discountMoney   
         }else{
             allMoney = money
         }
