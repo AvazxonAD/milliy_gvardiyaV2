@@ -922,7 +922,7 @@ exports.searchByNumber = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
     }
     
-    const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE contractnumber = $1`, [contractNumber.trim()])
+    const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE contractnumber = $1`, [contractNumber])
 
     return res.status(200).json({
         success: true,
