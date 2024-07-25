@@ -28,7 +28,7 @@ exports.getAllTasks = asyncHandler(async (req, res, next) => {
         SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address 
         FROM tasks 
         WHERE battalionname = $1 
-        ORDER BY taskdate DESC
+        ORDER BY contractnumber
         OFFSET $2 
         LIMIT $3
     `, [req.user.username, offset, limit]);
@@ -66,7 +66,7 @@ exports.filterByStatus = asyncHandler(async (req, res, next) => {
         SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address 
         FROM tasks 
         WHERE battalionname = $1 AND ${statusQuery} 
-        ORDER BY createdat DESC
+        ORDER BY contractnumber 
     `, [req.user.username]);
 
     const result = tasks.rows.map(task => {
@@ -94,6 +94,7 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
         SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address
         FROM tasks
         WHERE battalionname = $1 AND taskdate BETWEEN $2 AND $3
+        ORDER BY contractnumber
     `, [req.user.username, date1, date2]);
 
     const result = tasks.rows.map(task => {

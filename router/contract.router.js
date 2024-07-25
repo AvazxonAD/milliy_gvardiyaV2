@@ -17,7 +17,10 @@ const {
     forContractBatalyonns,
     search,
     importExcelData,
-    updateContractsInfo
+    updateContractsInfo,
+    searchByNumber,
+    searchByClientName,
+    searchByAddress
 } = require('../controller/contract.controller')
 
 const upload = require('multer')()
@@ -36,5 +39,10 @@ router.get('/get/all/batalyon', protect, forContractBatalyonns)
 router.post("/search", protect, search)
 router.post('/import/excel/data', upload.single("file"), protect, importExcelData)
 router.put('/update/info/:id', protect, updateContractsInfo)
+router.post('/search/by/number', protect, searchByNumber)
+router.post('/search/by/client/name', protect, searchByClientName)
+router.post('/search/by/address', protect, searchByAddress)
+
+
 
 module.exports = router

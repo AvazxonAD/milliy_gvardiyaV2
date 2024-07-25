@@ -32,7 +32,7 @@ CREATE TABLE workers (
 
 CREATE TABLE contracts (
     id BIGSERIAL NOT NULL PRIMARY KEY,
-    contractnumber VARCHAR(10) NOT NULL,
+    contractnumber NUMERIC NOT NULL,
     contractdate DATE NOT NULL,
     clientname VARCHAR(300) NOT NULL,
     clientaddress VARCHAR(400), 
@@ -59,7 +59,7 @@ CREATE TABLE tasks (
     id BIGSERIAL NOT NULL  PRIMARY KEY,
     battalionname VARCHAR(200) NOT NULL,
     contract_id INTEGER REFERENCES contracts(id) ON DELETE CASCADE,
-    contractnumber VARCHAR(10) NOT NULL,
+    contractnumber NUMERIC NOT NULL,
     clientName VARCHAR(300) NOT NULL,
     taskDate DATE NOT NULL,
     workernumber INTEGER NOT NULL,
@@ -97,7 +97,7 @@ CREATE TABLE iib_tasks (
     id BIGSERIAL NOT NULL  PRIMARY KEY,
     battalionname VARCHAR(200) NOT NULL,
     contract_id INTEGER REFERENCES contracts(id) ON DELETE CASCADE,
-    contractnumber VARCHAR(10) NOT NULL,
+    contractnumber NUMERIC NOT NULL,
     clientname VARCHAR(300) NOT NULL,
     taskdate DATE NOT NULL,
     workernumber INTEGER NOT NULL,
