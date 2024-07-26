@@ -72,6 +72,7 @@ CREATE TABLE tasks (
     inProgress BOOLEAN DEFAULT true,
     notDone BOOLEAN DEFAULT false,
     address VARCHAR(500) NOT NULL,
+    discount NUMERIC,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -90,6 +91,7 @@ CREATE TABLE worker_tasks (
     pay BOOLEAN DEFAULT false,
     command_id INTEGER REFERENCES commands(id),
     user_id INTEGER NOT NUll,
+    discount NUMERIC,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -110,6 +112,7 @@ CREATE TABLE iib_tasks (
     pay BOOLEAN DEFAULT false,
     command_id INTEGER REFERENCES commands(id),
     address VARCHAR(500) NOT NULL,
+    discount NUMERIC,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

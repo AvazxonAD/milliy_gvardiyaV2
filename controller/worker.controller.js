@@ -1,6 +1,6 @@
 const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
-//const checkUsername = require('../utils/checkUserName');
+const checkUsername = require('../utils/checkUserName');
 const pool = require("../config/db");
 const xlsx = require('xlsx');
 const { returnStringDate } = require("../utils/date.function");
@@ -16,10 +16,10 @@ exports.create = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
         }
 
-        // const test = checkUsername(`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`)
-        // if (!test) {
-        //     return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz kriting", 400))
-        // }
+        const test = checkUsername(`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`)
+        if (!test) {
+             return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz kriting", 400))
+        }
 
         const testFIO = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2
             `, [`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`, req.user.id])
@@ -64,6 +64,7 @@ exports.getAllworker = asyncHandler(async (req, res, next) => {
     else if (!req.user.adminstatus) {
         workers = await pool.query(`SELECT * FROM workers 
             WHERE user_id = $1
+            ORDER BY fio ASC
             OFFSET $2
             LIMIT $3
         `, [req.user.id, (page - 1) * limit, limit])
@@ -107,8 +108,8 @@ exports.getAllBatalyon = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
         return next(new ErrorResponse("siz admin emassiz", 403))
     }
-    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1 AND username NOT IN ($2, $3, $4) ORDER BY username ASC
-    `, [false, "Toshkent Shahar IIBB", "98162", "98157"])
+    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1 AND status = $2 ORDER BY username ASC
+    `, [false, false])
 
     res.status(200).json({
         success: true,
@@ -244,7 +245,7 @@ exports.searchWorker = asyncHandler(async (req, res, next) => {
     const { fio } = req.body
     let worker = null
     if (!req.user.adminstatus) {
-        worker = await pool.query(`SELECT * FROM workers WHERE fio ILIKE '%' || $1 || '%' AND user_id = $2 `, [fio, req.user.id])
+        worker = await pool.query(`SELECT * FROM workers WHERE fio ILIKE '%' || $1 || '%' AND user_id = $2 `, [fio.trim(), req.user.id])
         return res.status(200).json({
             success: true,
             data: worker.rows
@@ -253,13 +254,17 @@ exports.searchWorker = asyncHandler(async (req, res, next) => {
     worker = await pool.query(`SELECT workers.fio, workers.id, users.username FROM workers 
         JOIN users ON users.id = workers.user_id
         WHERE fio ILIKE '%' || $1 || '%' 
-        `, [fio])
+        `, [fio.trim()])
+
+    console.log(worker.rows)
+
     return res.status(200).json({
         success: true,
         data: worker.rows
     })
 })
 
+// excel file create
 exports.createExcel = asyncHandler(async (req, res, next) => {
     let workers;
     if (req.user.adminstatus) {
@@ -299,6 +304,7 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
     res.send(file_data);
 });
 
+// excel file data import 
 exports.importExcel = asyncHandler(async (req, res, next) => {
     if (!req.file) {
         return next(new ErrorResponse("file yuklanmadi", 400))
@@ -321,22 +327,27 @@ exports.importExcel = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse(`Surovlar bo'sh qolishi mumkin emas. Excel faylni tekshiring`, 400));
         }
         if (typeof rowData.fio !== "string") {
-            return next(new ErrorResponse(`Ma'lumotlar text formatida bo'lishi kerak. Xato sababchisi: ${rowData.fio}`, 400));
+            return next(new ErrorResponse(`Ma'lumotlar text formatida bo'lishi kerak. Xato sababchisi: ${rowData.fio.trim()}`, 400));
+        }
+
+        const test = checkUsername(rowData.fio.trim())
+        if (!test) {
+             return next(new ErrorResponse(`Isim Familya Ochistva imloviy xatolarsiz kriting: ${rowData.fio}`, 400))
+        }
+    }
+    for (const rowData of data) {
+        const fio = rowData.fio.trim();
+        if (fio.toLowerCase().trim() === 'vakant' || fio.toLowerCase().trim() === 'вакант') {
+            continue;
         }
 
         const fioResult = await pool.query(`SELECT * FROM workers WHERE user_id = $1 AND fio = $2`, [req.user.id, rowData.fio.trim()]);
         if (fioResult.rows[0]) {
-            return next(new ErrorResponse(`Bu xodim avval kiritilgan: ${rowData.fio}`, 400));
-        }
-    }
-
-    for (const rowData of data) {
-        const fio = rowData.fio.trim();
-        if (fio.toLowerCase() === 'vakant' || fio.toLowerCase() === 'вакант') {
-            continue;
+            continue
         }
 
-        await pool.query(`INSERT INTO workers (fio, user_id) VALUES($1, $2)`, [fio, req.user.id]);
+
+        await pool.query(`INSERT INTO workers (fio, user_id) VALUES($1, $2)`, [fio.trim(), req.user.id]);
     }
 
     return res.status(201).json({

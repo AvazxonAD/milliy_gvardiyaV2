@@ -37,7 +37,7 @@ exports.create = asyncHandler(async (req, res, next) => {
         discount,
         accountNumber
     } = req.body;
-
+    console.log(req.body)
     if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }   
@@ -119,7 +119,7 @@ exports.create = asyncHandler(async (req, res, next) => {
             tableName = `tasks`
         }
         
-        await pool.query(
+        const task = await pool.query(
             `INSERT INTO ${tableName} (
                 contract_id,
                 contractnumber,
@@ -132,8 +132,10 @@ exports.create = asyncHandler(async (req, res, next) => {
                 money,
                 discountmoney,
                 battalionname,
-                address
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, 
+                address,
+                discount
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+            RETURNING *`, 
             [
                 contract.rows[0].id,
                 contractNumber,
@@ -146,7 +148,8 @@ exports.create = asyncHandler(async (req, res, next) => {
                 Math.round((battalion.money * 100) / 100),
                 Math.round((battalion.discountMoney * 100) / 100),
                 battalion.name,
-                address
+                address,
+                discount
             ]
         );
     }
@@ -887,7 +890,6 @@ exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
     let date = returnDate(contractDate.toString().trim())
-
     const contract = await pool.query(`UPDATE contracts 
         SET contractnumber = $1, contractdate = $2, clientname= $3, timelimit = $4, clientaccount = $5, clientaddress = $6, clientmfo = $7, clientstr = $8, treasuryaccount = $9, accountnumber = $10, address = $11
         WHERE id = $12

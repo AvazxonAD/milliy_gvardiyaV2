@@ -10,6 +10,7 @@ const {
 
 const {
     getWorkerAllMoney,
+    sumMoney
 } = require('../utils/worker.tasks.function')
 
 // push worker
@@ -25,8 +26,25 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse('Bu topshiriq vaqtida bajarilmagan yoki allaqachon bajarilgan', 400));
     }
 
-    if (task.workernumber !== workers.length) {
-        return next(new ErrorResponse(`Xodimlar soni ${task.workernumber} bo'lishi kerak`, 400));
+    for(let worker of workers){
+        if(typeof worker.tasktime !== "number" || worker.tasktime < 1){
+            return next(new ErrorResponse("ommaviy tadbir vaqtin i tog'ri kiriting", 400))
+        }
+        const date = returnDate(worker.taskdate)
+        if(!date){
+        return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
+        }
+        if(date > task.taskdate){
+            return next(new ErrorResponse(`Bu ${worker.fio} xodim uchun topshiriq sanasini notog'ri kiritdinggiz : ${returnStringDate(date)}`, 400))
+        }
+    }
+
+    let testTime = 0
+    for(let worker of workers){
+        testTime += worker.tasktime
+    }
+    if(testTime !== +task.tasktime * task.workernumber){
+        return next(new ErrorResponse(`barcha xodimlarning umumiy ish soati : ${task.tasktime * task.workernumber}  soat bolishi kerak`, 400))
     }
 
     for(let worker of workers){
@@ -46,17 +64,19 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
     const contract = contractResult.rows[0];
 
     for (let worker of workers) {
+        const summa = sumMoney(task.discount, task.timemoney, worker.tasktime)
+        date = returnDate(worker.taskdate)
         await pool.query(
             `INSERT INTO worker_tasks (contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_name, user_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
             [
                 task.contract_id,
-                task.tasktime,
-                task.allmoney / task.workernumber,
-                task.taskdate,
+                worker.tasktime,
+                summa.summa,
+                date,
                 task.clientname,
                 contract.ispay,
-                (task.allmoney / task.workernumber) / task.tasktime,
+                summa.timemoney,
                 contract.address,
                 task.id,
                 worker.fio,

@@ -24,3 +24,17 @@ exports.blockTask = (tasks) => {
     return result
 }
  
+// sum money 
+exports.sumMoney = (discount, timemoney, tasktime) => {
+    result = {}
+    const total = timemoney * tasktime;
+    if (discount) {
+        const discountAmount = total * (discount / 100);
+        result.summa = Math.round((total - discountAmount) * 100) / 100 
+        result.timemoney = result.summa / tasktime
+        return result
+    }
+    result.summa = Math.round(total * 100) / 100;
+    result.timemoney = result.summa / tasktime
+    return result
+}
