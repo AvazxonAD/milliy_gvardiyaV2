@@ -73,7 +73,7 @@ CREATE TABLE tasks (
     notDone BOOLEAN DEFAULT false,
     address VARCHAR(500) NOT NULL,
     discount NUMERIC,
-    timelimit VARCHAR(500) NOT NULL,
+    timelimit NUMERIC,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -114,7 +114,7 @@ CREATE TABLE iib_tasks (
     command_id INTEGER REFERENCES commands(id),
     address VARCHAR(500) NOT NULL,
     discount NUMERIC,
-    timelimit VARCHAR(500),
+    timelimit NUMERIC,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

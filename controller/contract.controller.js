@@ -35,8 +35,10 @@ exports.create = asyncHandler(async (req, res, next) => {
         taskTime,
         battalions,
         discount,
-        accountNumber
+        accountNumber,
+        taskTimeLimit
     } = req.body;
+
     if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
@@ -150,7 +152,7 @@ exports.create = asyncHandler(async (req, res, next) => {
                 battalion.name,
                 address,
                 discount,
-                timeLimit
+                taskTimeLimit
             ]
         );
     }
