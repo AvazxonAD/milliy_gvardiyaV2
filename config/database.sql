@@ -114,7 +114,7 @@ CREATE TABLE iib_tasks (
     command_id INTEGER REFERENCES commands(id),
     address VARCHAR(500) NOT NULL,
     discount NUMERIC,
-    timelimit VARCHAR(500) NOT NULL,
+    timelimit VARCHAR(500),
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

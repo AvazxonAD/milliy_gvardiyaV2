@@ -25,7 +25,7 @@ exports.getAllTasks = asyncHandler(async (req, res, next) => {
     // }
 
     const tasks = await pool.query(`
-        SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address 
+        SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, timelimit, inProgress, done, notdone, address 
         FROM tasks 
         WHERE battalionname = $1 
         ORDER BY contractnumber
@@ -63,7 +63,7 @@ exports.filterByStatus = asyncHandler(async (req, res, next) => {
                         req.query.notDone ? 'notdone = TRUE' : '1=1'; // Default to 1=1 if no query
 
     const tasks = await pool.query(`
-        SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address 
+        SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, timelimit, inProgress, done, notdone, address 
         FROM tasks 
         WHERE battalionname = $1 AND ${statusQuery} 
         ORDER BY contractnumber 
@@ -91,7 +91,7 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
     }
 
     const tasks = await pool.query(`
-        SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, inProgress, done, notdone, address
+        SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, timelimit, inProgress, done, notdone, address
         FROM tasks
         WHERE battalionname = $1 AND taskdate BETWEEN $2 AND $3
         ORDER BY contractnumber

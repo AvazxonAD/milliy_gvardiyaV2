@@ -182,7 +182,7 @@ exports.update = asyncHandler(async (req, res, next) => {
     } = req.body;
 
     // Check required fields
-    if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber || !taskTimeLimit) {
+    if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
 
