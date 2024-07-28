@@ -28,7 +28,9 @@ exports.returnWorkerNumberAndAllMoney = (oneTimeMoney, battalions, discount, tas
     }
     if(discount){
         allMoney = money - discountMoney
+        allMoney = Math.round(allMoney * 100) / 100
     }else{
+        money = Math.round(money * 100) / 100
         allMoney = money
     }
 

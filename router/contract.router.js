@@ -20,7 +20,8 @@ const {
     updateContractsInfo,
     searchByNumber,
     searchByClientName,
-    searchByAddress
+    searchByAddress,
+    createExcelForReport
 } = require('../controller/contract.controller')
 
 const upload = require('multer')()
@@ -42,7 +43,7 @@ router.put('/update/info/:id', protect, updateContractsInfo)
 router.post('/search/by/number', protect, searchByNumber)
 router.post('/search/by/client/name', protect, searchByClientName)
 router.post('/search/by/address', protect, searchByAddress)
-
+router.post('/create/excel/for/report', protect, createExcelForReport)
 
 
 module.exports = router

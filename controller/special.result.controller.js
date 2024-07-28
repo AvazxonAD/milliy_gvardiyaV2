@@ -223,7 +223,7 @@ exports.deleteCommands = asyncHandler(async (req, res, next) => {
 // qoshimcha page 
 // get special batalyon 
 exports.getSpecialBatalyon = asyncHandler(async (req, res, next) => {
-    const batalyons = await pool.query(`SELECT id, username FROM users WHERE username = $1 OR username = $2 OR username = $3`, ["98162", "98157", "Toshkent Shahar IIBB"])
+    const batalyons = await pool.query(`SELECT id, username FROM users WHERE status = $1`, [true])
     res.status(200).json({
         success: true,
         data: batalyons.rows

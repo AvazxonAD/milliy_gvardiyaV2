@@ -20,15 +20,15 @@ const pool = require("../config/db");
 
 // create contract
 exports.create = asyncHandler(async (req, res, next) => {
-    let { 
-        contractNumber, 
-        contractDate, 
-        clientName, 
-        clientAddress, 
-        clientMFO, 
-        clientAccount, 
-        clientSTR, 
-        treasuryAccount, 
+    let {
+        contractNumber,
+        contractDate,
+        clientName,
+        clientAddress,
+        clientMFO,
+        clientAccount,
+        clientSTR,
+        treasuryAccount,
         timeLimit,
         address,
         taskDate,
@@ -40,7 +40,7 @@ exports.create = asyncHandler(async (req, res, next) => {
     console.log(req.body)
     if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
-    }   
+    }
 
     const isNull = checkBattailonsIsNull(battalions);
     if (!isNull) {
@@ -86,18 +86,18 @@ exports.create = asyncHandler(async (req, res, next) => {
             taskdate,
             accountnumber
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-        RETURNING *`, 
+        RETURNING *`,
         [
-            contractNumber, 
-            contractDate, 
-            clientName.trim(), 
-            clientAddress ? clientAddress.trim() : null, 
-            clientMFO, 
-            clientAccount ? clientAccount.trim() : null, 
-            clientSTR, 
-            treasuryAccount ? treasuryAccount.trim() : null, 
-            timeLimit, 
-            address.trim(),  
+            contractNumber,
+            contractDate,
+            clientName.trim(),
+            clientAddress ? clientAddress.trim() : null,
+            clientMFO,
+            clientAccount ? clientAccount.trim() : null,
+            clientSTR,
+            treasuryAccount ? treasuryAccount.trim() : null,
+            timeLimit,
+            address.trim(),
             discount,
             forContract.workerNumber,
             Math.round((forContract.allMoney * 100) / 100),
@@ -113,12 +113,12 @@ exports.create = asyncHandler(async (req, res, next) => {
     for (let battalion of forBattalion) {
         let tableName = null
         const user = await pool.query(`SELECT status FROM users WHERE username = $1`, [battalion.name])
-        if(user.rows[0].status){
+        if (user.rows[0].status) {
             tableName = `iib_tasks`
-        }else{
+        } else {
             tableName = `tasks`
         }
-        
+
         const task = await pool.query(
             `INSERT INTO ${tableName} (
                 contract_id,
@@ -135,7 +135,7 @@ exports.create = asyncHandler(async (req, res, next) => {
                 address,
                 discount
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
-            RETURNING *`, 
+            RETURNING *`,
             [
                 contract.rows[0].id,
                 contractNumber,
@@ -255,12 +255,12 @@ exports.update = asyncHandler(async (req, res, next) => {
     for (let battalion of forBattalion) {
         let tableName = null
         const user = await pool.query(`SELECT status FROM users WHERE username = $1`, [battalion.name])
-        if(user.rows[0].status){
+        if (user.rows[0].status) {
             tableName = `iib_tasks`
-        }else{
+        } else {
             tableName = `tasks`
         }
-        
+
         await pool.query(
             `INSERT INTO ${tableName} (
                 contract_id,
@@ -275,7 +275,7 @@ exports.update = asyncHandler(async (req, res, next) => {
                 discountmoney,
                 battalionname,
                 address
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, 
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
             [
                 contract.rows[0].id,
                 contractNumber,
@@ -316,11 +316,11 @@ exports.getAllcontracts = asyncHandler(async (req, res, next) => {
         FROM contracts 
         ORDER BY contractnumber
         OFFSET $1 
-        LIMIT $2`, 
+        LIMIT $2`,
         [offset, limit]
     );
 
-    const result = contractsQuery.rows.map(contract => { 
+    const result = contractsQuery.rows.map(contract => {
         contract.contractdate = returnStringDate(contract.contractdate);
         return contract;
     });
@@ -347,7 +347,7 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
 
     let contractQuery = await pool.query(
         `SELECT id, contractnumber, contractdate, clientname, clientaddress, clientmfo, clientaccount, clientstr, treasuryaccount, address, ispay 
-        FROM contracts WHERE id = $1`, 
+        FROM contracts WHERE id = $1`,
         [contractId]
     );
 
@@ -361,14 +361,14 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
     let tasksQuery = await pool.query(
         `SELECT id, battalionname, taskdate, workernumber, inprogress, done, notdone 
         FROM tasks 
-        WHERE contract_id = $1`, 
+        WHERE contract_id = $1`,
         [contractId]
     );
 
     let iibTasksQuery = await pool.query(
         `SELECT id, battalionname, taskdate, workernumber 
         FROM iib_tasks 
-        WHERE contract_id = $1`, 
+        WHERE contract_id = $1`,
         [contractId]
     );
 
@@ -419,9 +419,9 @@ exports.toPrint = asyncHandler(async (req, res, next) => {
 
 // delete contract 
 exports.deleteContract = asyncHandler(async (req, res, next) => {
-    const contract  = await pool.query(`DELETE FROM contracts WHERE id = $1 RETURNING id `, [req.params.id])
-    
-    if(!contract.rows[0]){
+    const contract = await pool.query(`DELETE FROM contracts WHERE id = $1 RETURNING id `, [req.params.id])
+
+    if (!contract.rows[0]) {
         return next(new ErrorResponse("server xatolik ochirib bolmadi", 500))
     }
 
@@ -433,14 +433,14 @@ exports.deleteContract = asyncHandler(async (req, res, next) => {
 
 // task's worker 
 exports.taskOfWorker = asyncHandler(async (req, res, next) => {
-    if(!req.user.adminstatus){
+    if (!req.user.adminstatus) {
         return next(new ErrorResponse("siz admin emassiz", 403))
     }
-    let workers = null 
-    if(req.query.task){
+    let workers = null
+    if (req.query.task) {
         workers = await pool.query(`SELECT worker_name FROM worker_tasks WHERE task_id  = $1`, [req.params.id])
     }
-    if(req.query.contract){
+    if (req.query.contract) {
         workers = await pool.query(`SELECT worker_name FROM worker_tasks WHERE contract_id = $1`, [req.params.id])
     }
     return res.status(200).json({
@@ -456,6 +456,10 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
     }
 
     const { date1, date2 } = req.body;
+
+    if (!date1 || !date2) {
+        return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
+    }
 
     const parsedDate1 = returnDate(date1);
     const parsedDate2 = returnDate(date2);
@@ -486,15 +490,15 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
 
 // payment contract 
 exports.paymentContract = asyncHandler(async (req, res, next) => {
-    if(!req.user.adminstatus){
+    if (!req.user.adminstatus) {
         return next(new ErrorResponse("siz admin emassiz", 403))
     }
     const contract = await pool.query(`UPDATE contracts SET ispay = $1 WHERE id = $2 RETURNING id`, [true, req.params.id])
-    
+
 
     await pool.query(`UPDATE worker_tasks SET ispay = $1 WHERE contract_id = $2`, [true, contract.rows[0].id])
     await pool.query(`UPDATE iib_tasks SET ispay = $1 WHERE contract_id = $2`, [true, contract.rows[0].id])
-    
+
     return res.status(200).json({
         success: true,
         data: "Muvaffiqiyatli amalga oshirildi"
@@ -503,18 +507,18 @@ exports.paymentContract = asyncHandler(async (req, res, next) => {
 
 // giving time to task 
 exports.givingTimeToTask = asyncHandler(async (req, res, next) => {
-    if(!req.user.adminstatus){
+    if (!req.user.adminstatus) {
         return next(new ErrorResponse("siz admin emassiz", 403))
     }
 
-    let  {date} = req.body
+    let { date } = req.body
     date = returnDate(date)
-    if(!date){
+    if (!date) {
         return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
     }
 
     const test = checkDateWithNowDate(date)
-    if(!test){
+    if (!test) {
         const nowDate = returnStringDate(new Date())
         return next(new ErrorResponse(`topshiriq vaqtini uzytrish uchun siz hozirgi kundan hech bolmasa bir kun koproq vaqt berishinggiz kerak. Hozirgi vaqt : ${nowDate}`, 400))
     }
@@ -535,12 +539,12 @@ exports.givingTimeToTask = asyncHandler(async (req, res, next) => {
 
 // for contract batalyons 
 exports.forContractBatalyonns = asyncHandler(async (req, res, next) => {
-    if(!req.user.adminstatus){
+    if (!req.user.adminstatus) {
         return next(new ErrorResponse("siz admin emassiz", 403))
     }
     const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1
     `, [false])
-    
+
     res.status(200).json({
         success: true,
         data: batalyons.rows
@@ -549,15 +553,15 @@ exports.forContractBatalyonns = asyncHandler(async (req, res, next) => {
 
 // search enterprice 
 exports.search = asyncHandler(async (req, res, next) => {
-    const {clientName} = req.body
-    if(!clientName){
+    const { clientName } = req.body
+    if (!clientName) {
         return next(new ErrorResponse("sorov bosh qolmasligi kerak", 400))
     }
 
     let contractQuery = await pool.query(
         `SELECT clientname, clientaddress, clientmfo, clientaccount, clientstr, treasuryaccount, address, timelimit
         FROM contracts WHERE clientname = $1
-        ORDER BY createdat DESC`, 
+        ORDER BY createdat DESC`,
         [clientName.trim()]
     );
 
@@ -571,20 +575,20 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
         return next(new ErrorResponse("siz admin emassiz", 403));
     }
-    
+
     if (!req.file) {
         return next(new ErrorResponse("file yuklanmadi", 400));
     }
-    
+
     const fileBuffer = req.file.buffer;
     const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    
+
     const datas = xlsx.utils.sheet_to_json(sheet, { defval: null }).map(row => {
         const newRow = {};
         const battalions = [];
-    
+
         for (const key in row) {
             if (["81109", "81140", "84007", "89071", "98157", "98162", "Тошкент шаҳар МГ", "Toshkent Shahar IIBB"].includes(key)) {
                 if (row[key] !== null && row[key] !== 0) {
@@ -594,11 +598,11 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                 newRow[key.trim()] = row[key];
             }
         }
-    
+
         if (battalions.length > 0) {
             newRow.battalions = battalions;
         }
-    
+
         return newRow;
     });
 
@@ -607,34 +611,34 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse("Sorovlar bosh qolishi mumkin emas excel fileni tekshiring", 400));
         }
     }
-    
+
     let accountnumber = await pool.query(`SELECT accountnumber FROM accountnumber`);
     accountnumber = accountnumber.rows[0].accountnumber;
-    
+
     for (let data of datas) {
         const isNull = checkBattailonsIsNull(data.battalions);
         if (!isNull) {
             return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
         }
-    
+
         const testIsSame = checkBattalionName(data.battalions);
         if (!testIsSame) {
             return next(new ErrorResponse("Bitta shartnomada bitta organ bir marta tanlanishi kerak", 400));
         }
-    
+
         let contractDate = returnDate(data.contractdate.toString().trim());
         let taskDate = returnDate(data.taskdate.toString().trim());
-    
+
         if (!contractDate || !taskDate) {
             return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
         }
-    
+
         const bxm = await pool.query(`SELECT * FROM bxm`);
         const oneTimeMoney = Math.round((bxm.rows[0].summa * 0.07) * 100) / 100;
-    
+
         const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, data.battalions, null, data.tasktime);
         const forBattalion = returnBattalion(oneTimeMoney, data.battalions, null, data.tasktime);
-    
+
         const contract = await pool.query(
             `INSERT INTO contracts (
                 contractnumber, 
@@ -652,13 +656,13 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                 taskdate,
                 accountnumber
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-            RETURNING *`, 
+            RETURNING *`,
             [
-                data.contractnumber, 
-                contractDate, 
-                data.clientname.trim(),  
-                data.timelimit, 
-                data.address ? data.address.trim() : null,  
+                data.contractnumber,
+                contractDate,
+                data.clientname.trim(),
+                data.timelimit,
+                data.address ? data.address.trim() : null,
                 null,
                 forContract.workerNumber,
                 forContract.allMoney,
@@ -670,7 +674,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                 accountnumber
             ]
         );
-    
+
         for (let battalion of forBattalion) {
             const user = await pool.query(`SELECT status FROM users WHERE username = $1`, [battalion.name]);
             let tableName = null;
@@ -679,7 +683,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
             } else {
                 tableName = `tasks`;
             }
-    
+
             await pool.query(
                 `INSERT INTO ${tableName} (
                     contract_id,
@@ -694,7 +698,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                     discountmoney,
                     battalionname,
                     address
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, 
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
                 [
                     contract.rows[0].id,
                     data.contractnumber,
@@ -712,7 +716,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
             );
         }
     }
-    
+
     return res.status(200).json({
         success: true,
         datas
@@ -769,34 +773,37 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("Excel faylni o'qishda xatolik yuz berdi", 500));
     }
 
-    
+
     let accountnumberResult = await pool.query(`SELECT accountnumber FROM accountnumber`);
     let accountnumber = accountnumberResult.rows[0].accountnumber;
-    
-    // For loop to process each data entry
+    let contractDate = null
+    let taskDate = null
     for (let data of datas) {
         const isNull = checkBattailonsIsNull(data.battalions);
         if (!isNull) {
             return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
         }
-    
+
         const testIsSame = checkBattalionName(data.battalions);
         if (!testIsSame) {
             return next(new ErrorResponse("Bitta shartnomada bitta organ bir marta tanlanishi kerak", 400));
         }
-        
-        let contractDate = returnDate(data.contractdate.trim());
-        let taskDate = returnDate(data.taskdate.trim());
+
+        contractDate = returnDate(data.contractdate.trim());
+        taskDate = returnDate(data.taskdate.trim());
         if (!contractDate || !taskDate) {
+            console.log(data)
             return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
         }
-    
+    }
+
+    for (let data of datas) {
         const bxm = await pool.query(`SELECT * FROM bxm`);
         const oneTimeMoney = Math.round((bxm.rows[0].summa * 0.07) * 100) / 100;
-    
+
         const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, data.battalions, null, data.tasktime);
         const forBattalion = returnBattalion(oneTimeMoney, data.battalions, null, data.tasktime);
-    
+
         const contractResult = await pool.query(
             `INSERT INTO contracts (
                 contractnumber, 
@@ -814,13 +821,13 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                 taskdate,
                 accountnumber
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-            RETURNING *`, 
+            RETURNING *`,
             [
-                data.contractnumber, 
-                contractDate, 
-                data.clientname.trim(),  
-                data.timelimit, 
-                data.address ? data.address.trim() : 'address',  
+                data.contractnumber,
+                contractDate,
+                data.clientname.trim(),
+                data.timelimit,
+                data.address ? data.address.trim() : 'address',
                 null,
                 forContract.workerNumber,
                 forContract.allMoney,
@@ -832,7 +839,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                 accountnumber
             ]
         );
-    
+
         // For loop to insert battalion data
         for (let j = 0; j < forBattalion.length; j++) {
             const battalion = forBattalion[j];
@@ -857,7 +864,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                     discountmoney,
                     battalionname,
                     address
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`, 
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
                 [
                     contractResult.rows[0].id,
                     data.contractnumber,
@@ -875,7 +882,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
             );
         }
     }
-    
+
     return res.status(200).json({
         success: true,
         datas
@@ -884,9 +891,9 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
 
 // update contracts info 
 exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
-    const {address, contractNumber, contractDate, clientName, clientAccount, clientAddress, clientMFO, clientSTR, treasuryAccount, timeLimit, accountNumber} = req.body
-    
-    if (!contractNumber || !contractDate || !clientName || !timeLimit || !address|| !accountNumber) {
+    const { address, contractNumber, contractDate, clientName, clientAccount, clientAddress, clientMFO, clientSTR, treasuryAccount, timeLimit, accountNumber } = req.body
+
+    if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !accountNumber) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
     let date = returnDate(contractDate.toString().trim())
@@ -895,18 +902,18 @@ exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
         WHERE id = $12
         RETURNING *
         `, [
-            contractNumber,
-            date,
-            clientName,
-            timeLimit,
-            clientAccount,
-            clientAddress,
-            clientMFO,
-            clientSTR,
-            treasuryAccount,
-            accountNumber,
-            address,
-            req.params.id
+        contractNumber,
+        date,
+        clientName,
+        timeLimit,
+        clientAccount,
+        clientAddress,
+        clientMFO,
+        clientSTR,
+        treasuryAccount,
+        accountNumber,
+        address,
+        req.params.id
     ])
     return res.status(200).json({
         success: true,
@@ -916,11 +923,11 @@ exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
 
 // search contract by number 
 exports.searchByNumber = asyncHandler(async (req, res, next) => {
-    const {contractNumber} = req.body
-    if(!contractNumber){
+    const { contractNumber } = req.body
+    if (!contractNumber) {
         return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
     }
-    
+
     const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE contractnumber = $1`, [contractNumber])
 
     return res.status(200).json({
@@ -931,11 +938,11 @@ exports.searchByNumber = asyncHandler(async (req, res, next) => {
 
 // search contract by client name  
 exports.searchByClientName = asyncHandler(async (req, res, next) => {
-    const {clientName} = req.body
-    if(!clientName){
+    const { clientName } = req.body
+    if (!clientName) {
         return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
     }
-    
+
     const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE clientname = $1`, [clientName.trim()])
 
     return res.status(200).json({
@@ -946,11 +953,11 @@ exports.searchByClientName = asyncHandler(async (req, res, next) => {
 
 // search contract by address  
 exports.searchByAddress = asyncHandler(async (req, res, next) => {
-    const {address} = req.body
-    if(!address){
+    const { address } = req.body
+    if (!address) {
         return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
     }
-    
+
     const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE address = $1`, [address.trim()])
 
     return res.status(200).json({
@@ -958,3 +965,113 @@ exports.searchByAddress = asyncHandler(async (req, res, next) => {
         data: contract.rows
     })
 })
+
+exports.createExcelForReport = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("Siz admin emassiz", 403));
+    }
+
+    const { date1, date2 } = req.body;
+
+    if (!date1 || !date2) {
+        return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400));
+    }
+
+    const parsedDate1 = returnDate(date1);
+    const parsedDate2 = returnDate(date2);
+
+    if (!parsedDate1 || !parsedDate2) {
+        return next(new ErrorResponse("Sana formati noto'g'ri kiritilgan. To'g'ri format: kun.oy.yil. Masalan: 12.12.2024", 400));
+    }
+
+    const contracts = await pool.query(`
+        SELECT 
+        id, clientname, contractnumber, contractdate, money, discount, discountmoney, allmoney, allworkernumber, tasktime, timelimit  
+        FROM contracts 
+        where contractdate BETWEEN $1 AND $2
+    `, [parsedDate1, parsedDate2]);
+
+    const battalions = await pool.query(`SELECT username FROM users WHERE adminstatus = $1 AND status = $2`, [false, false]);
+    const iib_battalions = await pool.query(`SELECT username FROM users WHERE adminstatus = $1 AND status = $2`, [false, true]);
+    
+    let resultArray = [];
+    for (let contract of contracts.rows) {
+        let battalionsArray = [];
+        const tasks = await pool.query(`SELECT clientname, workernumber, money, battalionname FROM tasks WHERE contract_id = $1`, [contract.id]);
+        const iib_tasks = await pool.query(`SELECT clientname, workernumber, money, battalionname FROM iib_tasks WHERE contract_id = $1`, [contract.id]);
+
+        for (let battalion of battalions.rows) {
+            let task = tasks.rows.find(task => task.battalionname === battalion.username) || { workernumber: 0, money: 0 };
+            battalionsArray.push({
+                battalionname: battalion.username,
+                workernumber: task.workernumber,
+                money: task.money
+            });
+        }
+
+        for (let battalion of iib_battalions.rows) {
+            let task = iib_tasks.rows.find(task => task.battalionname === battalion.username) || { workernumber: 0, money: 0 };
+            battalionsArray.push({
+                battalionname: battalion.username,
+                workernumber: task.workernumber,
+                money: task.money
+            });
+        }
+
+        let obj = { ...contract };
+        obj.contractdate = returnStringDate(obj.contractdate);
+        obj.battalions = battalionsArray;
+        resultArray.push(obj);
+    }
+
+    const workbook = xlsx.utils.book_new();
+
+    const worksheetData = resultArray.map(contract => {
+        const row = {
+            'Mijoz nomi': contract.clientname,
+            'Shartnoma raqami': contract.contractnumber,
+            'Shartnoma sanasi': contract.contractdate,
+            'Umumiy summa': contract.money,
+            'Chegirma': contract.discount ? contract.discount : 0,
+            'Chegirma summa': contract.discountmoney ? contract.discountmoney : 0,
+            'Jami summa': contract.allmoney,
+            'Xodimlar soni': contract.allworkernumber,
+            'boshlanish va tugash sanansi': contract.timelimit
+        };
+
+        contract.battalions.forEach(battalion => {
+            row[`${battalion.battalionname} - Xodimlar soni`] = battalion.workernumber;
+            row[`${battalion.battalionname} - Summa`] = battalion.money;
+        });
+
+        return row;
+    });
+
+    const worksheet = xlsx.utils.json_to_sheet(worksheetData);
+    
+    // Ustun kengliklarini belgilash
+    worksheet['!cols'] = [
+        { width: 50 }, // Mijoz nomi
+        { width: 15 }, // Shartnoma raqami
+        { width: 20 }, // Shartnoma sanasi
+        { width: 15 }, // Umumiy summa
+        { width: 10 }, // Chegirma
+        { width: 20 }, // Chegirma qilingan summa
+        { width: 15 }, // Jami summa
+        { width: 15 }, // Xodimlar soni
+        { width: 50 }  // boshlanish va tugash sanansi
+    ];
+
+    // Qo'shimcha ustunlar uchun kengliklar
+    const extraColumns = resultArray[0].battalions.length * 2;
+    for (let i = 0; i < extraColumns; i++) {
+        worksheet['!cols'].push({ width: 20 });
+    }
+
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Shartnomalar');
+
+    const buffer = xlsx.write(workbook, { type: 'buffer' });
+    res.setHeader('Content-Disposition', `attachment; filename=data_${Date.now()}.xlsx`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+});
