@@ -37,7 +37,6 @@ exports.create = asyncHandler(async (req, res, next) => {
         discount,
         accountNumber
     } = req.body;
-    console.log(req.body)
     if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
@@ -133,8 +132,9 @@ exports.create = asyncHandler(async (req, res, next) => {
                 discountmoney,
                 battalionname,
                 address,
-                discount
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+                discount,
+                timelimit
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
             RETURNING *`,
             [
                 contract.rows[0].id,
@@ -149,7 +149,8 @@ exports.create = asyncHandler(async (req, res, next) => {
                 Math.round((battalion.discountMoney * 100) / 100),
                 battalion.name,
                 address,
-                discount
+                discount,
+                timeLimit
             ]
         );
     }
@@ -176,11 +177,12 @@ exports.update = asyncHandler(async (req, res, next) => {
         taskTime,
         battalions,
         discount,
-        accountNumber
+        accountNumber,
+        taskTimeLimit,
     } = req.body;
 
     // Check required fields
-    if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber) {
+    if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber || !taskTimeLimit) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
 
@@ -250,6 +252,7 @@ exports.update = asyncHandler(async (req, res, next) => {
 
     // Delete old tasks
     await pool.query(`DELETE FROM tasks WHERE contract_id = $1`, [req.params.id]);
+    await pool.query(`DELETE FROM worker_tasks WHERE contract_id = $1`, [req.params.id])
     await pool.query(`DELETE FROM iib_tasks WHERE contract_id = $1`, [req.params.id]);
 
     for (let battalion of forBattalion) {
@@ -261,7 +264,7 @@ exports.update = asyncHandler(async (req, res, next) => {
             tableName = `tasks`
         }
 
-        await pool.query(
+        const task = await pool.query(
             `INSERT INTO ${tableName} (
                 contract_id,
                 contractnumber,
@@ -274,13 +277,16 @@ exports.update = asyncHandler(async (req, res, next) => {
                 money,
                 discountmoney,
                 battalionname,
-                address
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+                address,
+                discount,
+                timelimit
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
+            RETURNING *`,
             [
                 contract.rows[0].id,
                 contractNumber,
                 clientName,
-                formattedTaskDate,
+                taskDate,
                 battalion.workerNumber,
                 Math.round((battalion.oneTimeMoney * 100) / 100),
                 battalion.taskTime,
@@ -288,7 +294,9 @@ exports.update = asyncHandler(async (req, res, next) => {
                 Math.round((battalion.money * 100) / 100),
                 Math.round((battalion.discountMoney * 100) / 100),
                 battalion.name,
-                address
+                address,
+                discount,
+                taskTimeLimit
             ]
         );
     }
@@ -333,7 +341,7 @@ exports.getAllcontracts = asyncHandler(async (req, res, next) => {
         success: true,
         pageCount: pageCount,
         count: total,
-        currentPage: page,
+        currentPage: page, 
         nextPage: page >= pageCount ? null : page + 1,
         backPage: page === 1 ? null : page - 1,
         data: result
@@ -989,6 +997,7 @@ exports.createExcelForReport = asyncHandler(async (req, res, next) => {
         id, clientname, contractnumber, contractdate, money, discount, discountmoney, allmoney, allworkernumber, tasktime, timelimit  
         FROM contracts 
         where contractdate BETWEEN $1 AND $2
+        ORDER BY contractnumber
     `, [parsedDate1, parsedDate2]);
 
     const battalions = await pool.query(`SELECT username FROM users WHERE adminstatus = $1 AND status = $2`, [false, false]);
@@ -1031,7 +1040,7 @@ exports.createExcelForReport = asyncHandler(async (req, res, next) => {
             'Mijoz nomi': contract.clientname,
             'Shartnoma raqami': contract.contractnumber,
             'Shartnoma sanasi': contract.contractdate,
-            'Umumiy summa': contract.money,
+            'summa': contract.money,
             'Chegirma': contract.discount ? contract.discount : 0,
             'Chegirma summa': contract.discountmoney ? contract.discountmoney : 0,
             'Jami summa': contract.allmoney,
