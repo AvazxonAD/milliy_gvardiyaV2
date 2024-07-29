@@ -126,11 +126,15 @@ exports.taskWorkers = asyncHandler(async (req, res, next) => {
 // task info modal 
 exports.getTaskInfoModal = asyncHandler(async (req, res, next) => {
     const  rows = await pool.query(`SELECT * FROM tasks WHERE id = $1`, [req.params.id])
-    const task = rows.rows[0]
+    const task = rows.rows.map(item => {
+        item.taskdate = returnLocalDate(item.taskdate)
+        return item
+    })
     
     if(!task){
         return next(new ErrorResponse('server xatolik', 400))
     }
+
 
     return res.status(200).json({
         success: true,
