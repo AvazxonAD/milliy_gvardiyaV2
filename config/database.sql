@@ -40,6 +40,7 @@ CREATE TABLE contracts (
     clientaccount VARCHAR(23),
     clientstr INTEGER,
     treasuryaccount VARCHAR(100),
+    treasuryaccount27 VARCHAR(100),
     timelimit VARCHAR(500) NOT NULL,
     address VARCHAR(500),
     discount double precision,
@@ -52,6 +53,7 @@ CREATE TABLE contracts (
     tasktime double precision NOT NULL,
     taskdate DATE NOT NULL,
     accountnumber VARCHAR(40) NOT NULL,
+    tasktimelimit double precision,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

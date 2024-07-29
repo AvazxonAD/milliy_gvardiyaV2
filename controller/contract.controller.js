@@ -36,7 +36,8 @@ exports.create = asyncHandler(async (req, res, next) => {
         battalions,
         discount,
         accountNumber,
-        taskTimeLimit
+        taskTimeLimit,
+        treasuryaccount27
     } = req.body;
 
     if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber) {
@@ -64,7 +65,7 @@ exports.create = asyncHandler(async (req, res, next) => {
 
     const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, battalions, discount, taskTime);
     const forBattalion = returnBattalion(oneTimeMoney, battalions, discount, taskTime);
-
+    console.log(clientAccount)
     const contract = await pool.query(
         `INSERT INTO contracts (
             contractnumber, 
@@ -85,8 +86,10 @@ exports.create = asyncHandler(async (req, res, next) => {
             discountmoney,
             tasktime,
             taskdate,
-            accountnumber
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+            accountnumber,
+            treasuryaccount27,
+            tasktimelimit
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
         RETURNING *`,
         [
             contractNumber,
@@ -94,9 +97,9 @@ exports.create = asyncHandler(async (req, res, next) => {
             clientName.trim(),
             clientAddress ? clientAddress.trim() : null,
             clientMFO,
-            clientAccount ? clientAccount.trim() : null,
+            clientAccount ? clientAccount.toString() : null,
             clientSTR,
-            treasuryAccount ? treasuryAccount.trim() : null,
+            treasuryAccount ? treasuryAccount.toString() : null,
             timeLimit,
             address.trim(),
             discount,
@@ -107,7 +110,9 @@ exports.create = asyncHandler(async (req, res, next) => {
             Math.round((forContract.discountMoney * 100) / 100),
             taskTime,
             taskDate,
-            accountNumber
+            accountNumber,
+            treasuryaccount27.toString(),
+            taskTimeLimit
         ]
     );
 
@@ -162,8 +167,9 @@ exports.create = asyncHandler(async (req, res, next) => {
     });
 });
 
+// update contracts 
 exports.update = asyncHandler(async (req, res, next) => {
-    const {
+    let {
         contractNumber,
         contractDate,
         clientName,
@@ -180,6 +186,7 @@ exports.update = asyncHandler(async (req, res, next) => {
         discount,
         accountNumber,
         taskTimeLimit,
+        treasuryaccount27
     } = req.body;
 
     // Check required fields
@@ -192,9 +199,11 @@ exports.update = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
 
-    // Format dates
-    const formattedContractDate = returnDate(contractDate);
-    const formattedTaskDate = returnDate(taskDate);
+    contractDate = returnDate(contractDate.trim());
+    taskDate = returnDate(taskDate.trim());
+    if (!contractDate || !taskDate) {
+        return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
+    }
 
     if (!formattedContractDate || !formattedTaskDate) {
         return next(new ErrorResponse("Sana formatini to'g'ri kiriting. Masalan: 01.01.2024", 403));
@@ -207,6 +216,7 @@ exports.update = asyncHandler(async (req, res, next) => {
     const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, battalions, discount, taskTime);
     const forBattalion = returnBattalion(oneTimeMoney, battalions, discount, taskTime);
     // Update contract
+    
     const contract = await pool.query(
         `UPDATE contracts SET 
             contractnumber = $1, 
@@ -225,8 +235,11 @@ exports.update = asyncHandler(async (req, res, next) => {
             timemoney = $14,
             money = $15,
             discountmoney = $16,
-            accountnumber = $17
-        WHERE id = $18
+            accountnumber = $17,
+            treasuryaccount27 = $18,
+            contractdate = $19,
+            taskdate = $20
+        WHERE id = $21
         RETURNING id`,
         [
             contractNumber,
@@ -246,6 +259,9 @@ exports.update = asyncHandler(async (req, res, next) => {
             Math.round((forContract.money * 100) / 100),
             Math.round((forContract.discountMoney * 100) / 100),
             accountNumber,
+            treasuryaccount27,
+            contractDate,
+            taskDate,
             req.params.id
         ]
     );
@@ -354,7 +370,7 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
     const contractId = req.params.id;
 
     let contractQuery = await pool.query(
-        `SELECT id, contractnumber, contractdate, clientname, clientaddress, clientmfo, clientaccount, clientstr, treasuryaccount, address, ispay 
+        `SELECT id, contractnumber, contractdate, clientname, clientaddress, clientmfo, clientaccount, clientstr, treasuryaccount, address, ispay, timelimit
         FROM contracts WHERE id = $1`,
         [contractId]
     );
