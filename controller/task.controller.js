@@ -4,7 +4,8 @@ const pool = require("../config/db");
 
 const {
     returnDate,
-    returnStringDate
+    returnStringDate,
+    returnLocalDate
 } = require('../utils/date.function')
 
 //const { blockTask } = require('../utils/worker.tasks.function')
@@ -121,3 +122,33 @@ exports.taskWorkers = asyncHandler(async (req, res, next) => {
         data: workers.rows
     });
 });
+
+// task info modal 
+exports.getTaskInfoModal = asyncHandler(async (req, res, next) => {
+    const  rows = await pool.query(`SELECT * FROM tasks WHERE id = $1`, [req.params.id])
+    const task = rows.rows[0]
+    
+    if(!task){
+        return next(new ErrorResponse('server xatolik', 400))
+    }
+
+    const data  = {
+        battalion: `Ушбу топшириқ : ${task.battalionname} батальон учун `,
+        contractnumber: `Шартнома рақами : ${task.contractnumber}`,
+        clientname: `Буюртмачи номи : ${task.clientname}`,
+        taskdate: `Тадбир отадиган охирги кун : ${returnLocalDate(task.taskdate)} сиз ушбу кун отгандан сўнг 2 кун ичида ходимларни барчасини киритиб болган болишинггиз зарур агар тадбир бир неча кун давом этса ходимларни бир неча марта киритишинггиз мумкин лекин сиз учун ажратилган соатга етганда топшириқ бажарилган статусга озгаради `,
+        workernumber: `Ходимлар сони : ${task.workernumber} йодда тутинг бу ходимлар сизнинг батальондан ажратилган ходим сонига тенг лекин тадбир бир неча кун давом этса бу ходим сони кўпайиши мумкин ва бир кунлик ходим сонига тенг бўлади`,
+        timemoney: `Бир соат учун ${task.timemoney} сўм ушбу сумма буюртмачи чегирма қилиб берилса ёки БХМ кўтарилса ошиши ёки камайиши мумкин`,
+        tasktime: `Топшириқ вақти : ${task.tasktime} соат албатта бу вақт битта ходим учун, ушбу топшириқ бўйича  батальон учун умумий топшириқ вақти : ${task.tasktime * task.workernumber} соат`,
+        timeLimit: task.timelimit ? `TIME LIMIT : ${task.timelimit} ушбу соат тадбир отадиган вақт ёки тадбир бир неча кун болса ҳар кунлик вақт лимити ` : `Админ билан боғланинг ушбу тадбир ўтадиган  вақти но'малум `,
+        inProgress: task.inprogress,
+        done: task.done,
+        notDone: task.notdone,
+
+    }
+
+    return res.status(200).json({
+        success: true,
+        data
+    })
+})

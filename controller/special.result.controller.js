@@ -287,7 +287,7 @@ exports.getSpecialData = asyncHandler(async (req, res, next) => {
     });
 });
 
-
+// get all special data to excel    
 exports.getAllSpecialToExcel = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
         return next(new ErrorResponse("Siz admin emassiz", 403));
