@@ -143,8 +143,7 @@ exports.getTaskInfoModal = asyncHandler(async (req, res, next) => {
         timeLimit: task.timelimit ? `TIME LIMIT : ${task.timelimit} ушбу соат тадбир отадиган вақт ёки тадбир бир неча кун болса ҳар кунлик вақт лимити ` : `Админ билан боғланинг ушбу тадбир ўтадиган  вақти но'малум `,
         inProgress: task.inprogress,
         done: task.done,
-        notDone: task.notdone,
-
+        notDone: task.notdone
     }
 
     return res.status(200).json({

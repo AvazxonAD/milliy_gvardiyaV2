@@ -5,7 +5,8 @@ const xlsx = require('xlsx')
 
 const {
     returnDate,
-    returnStringDate
+    returnStringDate,
+    returnLocalDate
 } = require('../utils/date.function')
 
 const {
@@ -39,7 +40,9 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
         if(!date){
         return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
         }
-        if(date > task.taskdate){
+        const testFor = new Date(task.taskdate)
+        testFor.setDate(testFor.getDate() + 1)
+        if(date > testFor){
             return next(new ErrorResponse(`Bu ${worker.fio} xodim uchun topshiriq sanasini notog'ri kiritdinggiz : ${returnStringDate(date)}`, 400))
         }
     }
