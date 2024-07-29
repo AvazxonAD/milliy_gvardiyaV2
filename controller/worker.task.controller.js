@@ -28,7 +28,12 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
 
     for(let worker of workers){
         if(typeof worker.tasktime !== "number" || worker.tasktime < 1){
-            return next(new ErrorResponse("ommaviy tadbir vaqtin i tog'ri kiriting", 400))
+            return next(new ErrorResponse("ommaviy tadbir vaqtini tog'ri kiriting", 400))
+        }
+        if(task.timelimit){
+            if(worker.tasktime !== task.timelimit){
+                return next(new ErrorResponse(`Bu xodim ${worker.fio} uchun notogri vaqt kiritdinggiz : ${worker.tasktime}. OMMAVIY TADBIR OTKIZALIDAN VAQT  : ${task.timelimit}`, 400))   
+            }
         }
         const date = returnDate(worker.taskdate)
         if(!date){
@@ -43,8 +48,11 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
     for(let worker of workers){
         testTime += worker.tasktime
     }
-    if(testTime !== +task.tasktime * task.workernumber){
-        return next(new ErrorResponse(`barcha xodimlarning umumiy ish soati : ${task.tasktime * task.workernumber}  soat bolishi kerak`, 400))
+
+    let remainingTime = await pool.query(`SELECT SUM(tasktime) AS tasktime FROM worker_tasks WHERE task_id = $1`, [task.id])
+    
+    if(testTime > ((task.tasktime * task.workernumber) - remainingTime.rows[0].tasktime)){
+        return next(new ErrorResponse(`Ushbu topshiriq uchun kiritiladigan vaqtning qoldig'i ${(task.tasktime * task.workernumber) - remainingTime.rows[0].tasktime}`, 400))
     }
 
     for(let worker of workers){
@@ -67,8 +75,8 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
         const summa = sumMoney(task.discount, task.timemoney, worker.tasktime)
         date = returnDate(worker.taskdate)
         await pool.query(
-            `INSERT INTO worker_tasks (contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_name, user_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+            `INSERT INTO worker_tasks (contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_name, user_id, discount)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
             [
                 task.contract_id,
                 worker.tasktime,
@@ -80,15 +88,19 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
                 contract.address,
                 task.id,
                 worker.fio,
-                req.user.id
+                req.user.id,
+                task.discount
             ]
         );
     }
-
-    await pool.query(
-        `UPDATE tasks SET inprogress = $1, done = $2, notdone = $3 WHERE id = $4`,
-        [false, true, false, req.params.id]
-    );
+    remainingTime = await pool.query(`SELECT SUM(tasktime) AS tasktime FROM worker_tasks WHERE task_id = $1`, [task.id])
+    
+    if(((task.tasktime * task.workernumber) - remainingTime.rows[0].tasktime) === 0){
+        await pool.query(
+            `UPDATE tasks SET inprogress = $1, done = $2, notdone = $3 WHERE id = $4`,
+            [false, true, false, req.params.id]
+        );
+    }
 
     return res.status(200).json({
         success: true,

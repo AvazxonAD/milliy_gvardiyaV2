@@ -119,7 +119,6 @@ exports.create = asyncHandler(async (req, res, next) => {
         } else {
             tableName = `tasks`
         }
-
         const task = await pool.query(
             `INSERT INTO ${tableName} (
                 contract_id,
@@ -204,7 +203,6 @@ exports.update = asyncHandler(async (req, res, next) => {
     // Fetch one-time money
     const bxm = await pool.query(`SELECT * FROM bxm`);
     const oneTimeMoney = Math.round(((bxm.rows[0].summa * 0.07) * 100) / 100);
-
     // Calculate contract details
     const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, battalions, discount, taskTime);
     const forBattalion = returnBattalion(oneTimeMoney, battalions, discount, taskTime);
@@ -786,8 +784,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
 
     let accountnumberResult = await pool.query(`SELECT accountnumber FROM accountnumber`);
     let accountnumber = accountnumberResult.rows[0].accountnumber;
-    let contractDate = null
-    let taskDate = null
+
     for (let data of datas) {
         const isNull = checkBattailonsIsNull(data.battalions);
         if (!isNull) {
@@ -799,10 +796,9 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse("Bitta shartnomada bitta organ bir marta tanlanishi kerak", 400));
         }
 
-        contractDate = returnDate(data.contractdate.trim());
-        taskDate = returnDate(data.taskdate.trim());
+        const contractDate = returnDate(data.contractdate.trim());
+        const taskDate = returnDate(data.taskdate.trim());
         if (!contractDate || !taskDate) {
-            console.log(data)
             return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
         }
     }
@@ -813,6 +809,8 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
 
         const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, data.battalions, null, data.tasktime);
         const forBattalion = returnBattalion(oneTimeMoney, data.battalions, null, data.tasktime);
+        const contractDate = returnDate(data.contractdate.toString().trim());
+        const taskDate = returnDate(data.taskdate.toString().trim());
 
         const contractResult = await pool.query(
             `INSERT INTO contracts (
@@ -845,7 +843,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                 forContract.money,
                 forContract.discountMoney,
                 data.tasktime,
-                returnDate(data.taskdate.toString().trim()),
+                taskDate,
                 accountnumber
             ]
         );
@@ -1002,6 +1000,10 @@ exports.createExcelForReport = asyncHandler(async (req, res, next) => {
         ORDER BY contractnumber
     `, [parsedDate1, parsedDate2]);
 
+    if(!contracts.rows.length){
+        return next(new ErrorResponse('Bu vaqt orasida contractlar mavjud emas', 400))
+    }
+
     const battalions = await pool.query(`SELECT username FROM users WHERE adminstatus = $1 AND status = $2`, [false, false]);
     const iib_battalions = await pool.query(`SELECT username FROM users WHERE adminstatus = $1 AND status = $2`, [false, true]);
     
@@ -1076,7 +1078,7 @@ exports.createExcelForReport = asyncHandler(async (req, res, next) => {
     // Qo'shimcha ustunlar uchun kengliklar
     const extraColumns = resultArray[0].battalions.length * 2;
     for (let i = 0; i < extraColumns; i++) {
-        worksheet['!cols'].push({ width: 20 });
+        worksheet['!cols'].push({ width: 30 });
     }
 
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Shartnomalar');
@@ -1084,5 +1086,5 @@ exports.createExcelForReport = asyncHandler(async (req, res, next) => {
     const buffer = xlsx.write(workbook, { type: 'buffer' });
     res.setHeader('Content-Disposition', `attachment; filename=data_${Date.now()}.xlsx`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.send(buffer);
+    res.status(200).send(buffer);
 });

@@ -2,6 +2,7 @@
 const pool = require('../config/db')
 const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require('../utils/errorResponse');
+const xlsx = require('xlsx')
 
 const {
     returnDate,
@@ -99,10 +100,9 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
     const batalyonsQuery = `
             SELECT username 
             FROM users 
-            WHERE adminstatus = $1 
-            AND (username = $2 OR username = $3 OR username = $4)
+            WHERE status = $1
         `;
-    const batalyons = await pool.query(batalyonsQuery, [false, "Toshkent Shahar IIBB", "98162", "98157"]);
+    const batalyons = await pool.query(batalyonsQuery, [true]);
 
     for (let batalyon of batalyons.rows) {
         const payTasksQuery = `
@@ -285,6 +285,68 @@ exports.getSpecialData = asyncHandler(async (req, res, next) => {
             notPaySumma: notPaySumma.rows[0].sum ? notPaySumma.rows[0].sum : 0
         }
     });
+});
+
+
+exports.getAllSpecialToExcel = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("Siz admin emassiz", 403));
+    }
+
+    const { data } = req.body;
+
+    if (!data) {
+        return next(new ErrorResponse('Server xatolik', 500));
+    }
+
+    // Sheetlar uchun ma'lumotlarni tayyorlash
+    const payContractsSheet = xlsx.utils.json_to_sheet(data.payContracts, {header: ["contractnumber", "taskdate", "clientname", "address", "workernumber", "allmoney", "tasktime"]});
+    const notPayContractsSheet = xlsx.utils.json_to_sheet(data.notPayContracts, {header: ["contractnumber", "taskdate", "clientname", "address", "workernumber", "allmoney", "tasktime"]});
+    const batalyonNameSheet = xlsx.utils.json_to_sheet([{ "Batalyon Nomi": data.batalyonName }]);
+    const summaSheet = xlsx.utils.json_to_sheet([{ "Summa": data.summa }]);
+    const notPaySummaSheet = xlsx.utils.json_to_sheet([{ "Not Pay Summa": data.notPaySumma }]);
+
+    // Ustun kengliklarini belgilash
+    payContractsSheet['!cols'] = [
+        { width: 15 }, // contractnumber
+        { width: 20 }, // taskdate
+        { width: 50 }, // clientname
+        { width: 30 }, // address
+        { width: 15 }, // workernumber
+        { width: 20 }, // allmoney
+        { width: 15 }  // tasktime
+    ];
+
+    notPayContractsSheet['!cols'] = [
+        { width: 15 }, // contractnumber
+        { width: 20 }, // taskdate
+        { width: 50 }, // clientname
+        { width: 30 }, // address
+        { width: 15 }, // workernumber
+        { width: 20 }, // allmoney
+        { width: 15 }  // tasktime
+    ];
+
+    batalyonNameSheet['!cols'] = [{ width: 30 }];
+    summaSheet['!cols'] = [{ width: 20 }];
+    notPaySummaSheet['!cols'] = [{ width: 20 }];
+
+    // Yangi workbook yaratish va sheetlarni qo'shish
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, batalyonNameSheet, 'Batalyon Nomi');
+    xlsx.utils.book_append_sheet(workbook, payContractsSheet, 'Pay Contracts');
+    xlsx.utils.book_append_sheet(workbook, notPayContractsSheet, 'Not Pay Contracts');
+    xlsx.utils.book_append_sheet(workbook, summaSheet, 'Summa');
+    xlsx.utils.book_append_sheet(workbook, notPaySummaSheet, 'Not Pay Summa');
+
+    // Workbookni bufferga yozish
+    const buffer = xlsx.write(workbook, { type: 'buffer' });
+    const filename = `${Date.now()}_data.xlsx`;
+
+    // Excel faylini yuborish uchun HTTP headers sozlash
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
 });
 
 // get special filter date 

@@ -9,7 +9,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE bxm (
-    summa NUMERIC NOT NULL
+    summa double precision NOT NULL
 );
 
 CREATE TABLE commands (
@@ -17,7 +17,7 @@ CREATE TABLE commands (
     commanddate DATE NOT NULL,
     date1 DATE NOT NULL,
     date2 DATE NOT NUll,
-    commandnumber INTEGER NOT NULL,
+    commandnumber double precision NOT NULL,
     status BOOLEAN DEFAULT false,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -32,7 +32,7 @@ CREATE TABLE workers (
 
 CREATE TABLE contracts (
     id BIGSERIAL NOT NULL PRIMARY KEY,
-    contractnumber NUMERIC NOT NULL,
+    contractnumber double precision NOT NULL,
     contractdate DATE NOT NULL,
     clientname VARCHAR(300) NOT NULL,
     clientaddress VARCHAR(400), 
@@ -42,14 +42,14 @@ CREATE TABLE contracts (
     treasuryaccount VARCHAR(100),
     timelimit VARCHAR(500) NOT NULL,
     address VARCHAR(500),
-    discount NUMERIC,
+    discount double precision,
     allworkernumber INTEGER NOT NULL,
-    allmoney NUMERIC NOT NULL,
-    timemoney NUMERIC NOT NULL,
-    money NUMERIC NOT NULL,
-    discountmoney NUMERIC,
+    allmoney double precision NOT NULL,
+    timemoney double precision NOT NULL,
+    money double precision NOT NULL,
+    discountmoney double precision,
     ispay BOOLEAN DEFAULT false,
-    tasktime NUMERIC NOT NULL,
+    tasktime double precision NOT NULL,
     taskdate DATE NOT NULL,
     accountnumber VARCHAR(40) NOT NULL,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
@@ -59,21 +59,21 @@ CREATE TABLE tasks (
     id BIGSERIAL NOT NULL  PRIMARY KEY,
     battalionname VARCHAR(200) NOT NULL,
     contract_id INTEGER REFERENCES contracts(id) ON DELETE CASCADE,
-    contractnumber NUMERIC NOT NULL,
+    contractnumber double precision NOT NULL,
     clientName VARCHAR(300) NOT NULL,
     taskDate DATE NOT NULL,
     workernumber INTEGER NOT NULL,
-    timemoney INTEGER NOT NULL,
-    tasktime NUMERIC NOT NULL,
-    allmoney INTEGER NOT NULL,
-    discountmoney INTEGER,
-    money INTEGER NOT NULL,
+    timemoney double precision NOT NULL,
+    tasktime double precision NOT NULL,
+    allmoney double precision NOT NULL,
+    discountmoney double precision,
+    money double precision NOT NULL,
     done BOOLEAN DEFAULT false,
     inProgress BOOLEAN DEFAULT true,
     notDone BOOLEAN DEFAULT false,
     address VARCHAR(500) NOT NULL,
-    discount NUMERIC,
-    timelimit NUMERIC,
+    discount double precision,
+    timelimit double precision,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -81,10 +81,10 @@ CREATE TABLE worker_tasks (
     id BIGSERIAL NOT NULL PRIMARY KEY,
     worker_name VARCHAR(300) NOT NULL,
     task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE, 
-    onetimemoney INTEGER NOT NULL,
+    onetimemoney double precision NOT NULL,
     contract_id INTEGER REFERENCES contracts(id) ON DELETE CASCADE,
-    tasktime NUMERIC NOT NULL,
-    summa INTEGER NOT NULL,
+    tasktime double precision NOT NULL,
+    summa double precision NOT NULL,
     taskdate DATE NOT NULL,
     clientname VARCHAR(200) NOT NULL,
     isPay BOOLEAN DEFAULT false,
@@ -92,7 +92,7 @@ CREATE TABLE worker_tasks (
     pay BOOLEAN DEFAULT false,
     command_id INTEGER REFERENCES commands(id),
     user_id INTEGER NOT NUll,
-    discount NUMERIC,
+    discount double precision,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -100,21 +100,21 @@ CREATE TABLE iib_tasks (
     id BIGSERIAL NOT NULL  PRIMARY KEY,
     battalionname VARCHAR(200) NOT NULL,
     contract_id INTEGER REFERENCES contracts(id) ON DELETE CASCADE,
-    contractnumber NUMERIC NOT NULL,
+    contractnumber double precision NOT NULL,
     clientname VARCHAR(300) NOT NULL,
     taskdate DATE NOT NULL,
     workernumber INTEGER NOT NULL,
-    timemoney INTEGER NOT NULL,
-    tasktime NUMERIC NOT NULL,
-    allmoney INTEGER NOT NULL,
-    discountmoney INTEGER,
-    money INTEGER NOT NULL,
+    timemoney double precision NOT NULL,
+    tasktime double precision NOT NULL,
+    allmoney double precision NOT NULL,
+    discountmoney double precision,
+    money double precision NOT NULL,
     ispay BOOLEAN DEFAULT false,
     pay BOOLEAN DEFAULT false,
     command_id INTEGER REFERENCES commands(id),
     address VARCHAR(500) NOT NULL,
-    discount NUMERIC,
-    timelimit NUMERIC,
+    discount double precision,
+    timelimit double precision,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
