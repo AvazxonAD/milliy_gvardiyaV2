@@ -11,11 +11,11 @@ exports.login = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 400));
     }
     
-    if (username === "Toshkent Shahar IIBB" || username === "98162" || username === "98157") {
-        return next(new ErrorResponse("Ushbu username bilan ro'yxatdan o'tib bo'lmaydi", 400));
-    }
-
     const user = await pool.query(`SELECT * FROM users WHERE username = $1`, [username]);
+
+    if(user.rows[0].status){
+        return next(new ErrorResponse("Username yoki parol xato kiritildi", 403))
+    }
 
     if (!user.rows[0] || user.rows[0].password !== password) {
         return next(new ErrorResponse("Username yoki parol xato kiritildi", 403));
@@ -36,7 +36,7 @@ exports.createBatalyon = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("Siz admin emassiz", 403));
     }
 
-    const { username, password } = req.body;
+    const { username, password, status} = req.body;
 
     if (!username || !password) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 400));
@@ -48,7 +48,7 @@ exports.createBatalyon = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("Bu batalyon avval kiritilgan", 400));
     }
 
-    const newUser = await pool.query(`INSERT INTO users(username, password) VALUES($1, $2) RETURNING *`, [username.trim(), password]);
+    const newUser = await pool.query(`INSERT INTO users(username, password, status, user_id) VALUES($1, $2, $3, $4) RETURNING *`, [username.trim(), password, status, req.user.id]);
 
     return res.status(200).json({
         success: true,
@@ -89,9 +89,6 @@ exports.update = asyncHandler(async (req, res, next) => {
 // update batalyons 
 exports.updateBatalyons = asyncHandler(async (req, res, next) => {
     const batalyon = await pool.query(`SELECT * FROM users WHERE id = $1`, [req.params.id]);
-    if (batalyon.rows[0].username === "Toshkent Shahar IIBB" || batalyon.rows[0].username === "98162" || batalyon.rows[0].username === "98157") {
-        return next(new ErrorResponse("Ushbu batalyonlarga ko'p narsa bog'langan, buni yangilash uchun dasturchi bilan bog'laning", 400));
-    }
     
     const { username, newPassword } = req.body;
 
@@ -121,7 +118,7 @@ exports.getProfile = asyncHandler(async (req, res, next) => {
     // admin for
     if (req.user.adminstatus) {
         const user = await pool.query(`SELECT * FROM users WHERE id = $1`, [req.user.id]);
-        const users = await pool.query(`SELECT * FROM users WHERE adminstatus = $1`, [false]);
+        const users = await pool.query(`SELECT * FROM users WHERE adminstatus = $1 AND user_id = $2`, [false, req.user.id]);
         return res.status(200).json({
             success: true,
             data: user.rows[0],

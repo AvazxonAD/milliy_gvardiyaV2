@@ -6,7 +6,7 @@ const ErrorResponse = require("../utils/errorResponse");
 exports.create = asyncHandler(async (req, res, next) => {
     const { accountNumber } = req.body;
 
-    if (!accountNumber || accountNumber.length !== 20) {
+    if (!accountNumber || accountNumber.length < 20) {
         return next(new ErrorResponse(`Hisob raqami 20 xonalik son bo'lishi kerak`, 400));
     }
 

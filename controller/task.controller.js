@@ -28,11 +28,11 @@ exports.getAllTasks = asyncHandler(async (req, res, next) => {
     const tasks = await pool.query(`
         SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, timelimit, inProgress, done, notdone, address 
         FROM tasks 
-        WHERE battalionname = $1 
+        WHERE user_id = $1 
         ORDER BY contractnumber
         OFFSET $2 
         LIMIT $3
-    `, [req.user.username, offset, limit]);
+    `, [req.user.id, offset, limit]);
 
     // Format task dates
     const result = tasks.rows.map(task => {

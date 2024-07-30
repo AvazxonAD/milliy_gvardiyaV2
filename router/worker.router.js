@@ -12,7 +12,8 @@ const {
     deleteWorker,
     searchWorker,
     createExcel,
-    importExcel
+    importExcel,
+    forPush
 } = require('../controller/worker.controller')
 
 const upload = require('multer')()
@@ -26,6 +27,6 @@ router.delete("/delete/:id", protect, deleteWorker)
 router.post('/search', protect, searchWorker)
 router.get("/excel/create", protect, createExcel)
 router.post('/import/excel', protect, upload.single("file"), importExcel)
-
+router.get('/for/push', protect, forPush)
 
 module.exports = router

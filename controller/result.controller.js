@@ -57,8 +57,8 @@ exports.getBattalionAndWorkers = asyncHandler(async (req, res, next) => {
         return command  
     })
 
-    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1 AND username NOT IN ($2, $3, $4)
-    `, [false,"Toshkent Shahar IIBB", "98162", "98157"])
+    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1 AND status = $2
+    `, [false, true])
     
         let result = []
 

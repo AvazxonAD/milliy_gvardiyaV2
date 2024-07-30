@@ -7,7 +7,7 @@ const { returnStringDate } = require("../utils/date.function");
 
 exports.create = asyncHandler(async (req, res, next) => {
     const { workers } = req.body
-    if(!workers || workers.length < 1){
+    if (!workers || workers.length < 1) {
         return next(new ErrorResponse('sorovlar bosh qolishi mumkin emas', 400))
     }
 
@@ -18,7 +18,7 @@ exports.create = asyncHandler(async (req, res, next) => {
 
         const test = checkUsername(`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`)
         if (!test) {
-             return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz kriting", 400))
+            return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz kriting", 400))
         }
 
         const testFIO = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2
@@ -31,7 +31,7 @@ exports.create = asyncHandler(async (req, res, next) => {
     for (let worker of workers) {
         const fio = await pool.query(`INSERT INTO workers(fio, user_id) VALUES($1, $2) RETURNING *
             `, [`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`, req.user.id])
-        if(!fio.rows[0]){
+        if (!fio.rows[0]) {
             return next(new ErrorResponse("Server xatolik kiritilmadi", 400))
         }
     }
@@ -158,7 +158,7 @@ exports.updateWorker = asyncHandler(async (req, res, next) => {
         if (!lastname || !firstname || !fatherName) {
             return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
         }
-        
+
         // const test = checkUsername(`${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`)
         // if (!test) {
         //     return next(new ErrorResponse("Isim Familya Ochistva bosh harifda bolishi zarur", 400))
@@ -206,8 +206,8 @@ exports.deleteWorker = asyncHandler(async (req, res, next) => {
             JOIN contracts ON worker_tasks.contract_id = contracts.id 
             WHERE worker_tasks.worker_name = $1 AND pay = $2 AND command_id IS NULL
         `, [worker.rows[0].fio, false]);
-        
-        
+
+
         if (notPayMoney.rowCount > 0) {
             let result = notPayMoney.rows.map(notPay => {
                 return {
@@ -241,7 +241,7 @@ exports.deleteWorker = asyncHandler(async (req, res, next) => {
 
 // search worker 
 exports.searchWorker = asyncHandler(async (req, res, next) => {
-    
+
     const { fio } = req.body
     let worker = null
     if (!req.user.adminstatus) {
@@ -332,7 +332,7 @@ exports.importExcel = asyncHandler(async (req, res, next) => {
 
         const test = checkUsername(rowData.fio.trim())
         if (!test) {
-             return next(new ErrorResponse(`Isim Familya Ochistva imloviy xatolarsiz kriting: ${rowData.fio}`, 400))
+            return next(new ErrorResponse(`Isim Familya Ochistva imloviy xatolarsiz kriting: ${rowData.fio}`, 400))
         }
     }
     for (const rowData of data) {
@@ -354,4 +354,18 @@ exports.importExcel = asyncHandler(async (req, res, next) => {
         success: true,
         data: "Kiritildi"
     });
-}); 
+});
+
+// for push 
+exports.forPush = asyncHandler(async (req, res, next) => {
+    workers = await pool.query(`SELECT * FROM workers 
+            WHERE user_id = $1
+            ORDER BY fio ASC
+        `, [req.user.id])
+    total = await pool.query(`SELECT COUNT(id) AS total FROM workers WHERE user_id = $1`, [req.user.id])
+
+    return res.status(200).json({
+        success: true,
+        data: workers.rows
+    })
+})

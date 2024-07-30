@@ -31,7 +31,7 @@ exports.createSpecial = asyncHandler(async (req, res, next) => {
     const iib_tasks = await pool.query(`SELECT * FROM iib_tasks WHERE ispay = $1 AND pay = $2 AND taskdate < $3
         `, [true, false, date2])
     if (iib_tasks.rows.length === 0) {
-        return next(new ErrorResponse('ushbu muddat ichida Toshkent Shahar IIBB, 98162, 98157 ommaviy tadbirda ishtirok etmadi yoki ishtirok etgan tadbirlar hali pul otkazmadi', 400))
+        return next(new ErrorResponse('ushbu muddat ichida harkorlikdagi birgadalar ommaviy tadbirda ishtirok etmadi yoki ishtirok etgan tadbirlar hali pul otkazmadi', 400))
     }
 
     const command = await pool.query(`INSERT INTO commands (date1, date2, commanddate, commandnumber, status) VALUES($1, $2, $3, $4, $5) RETURNING *

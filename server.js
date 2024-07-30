@@ -11,9 +11,7 @@ require('colors')
 app.use(cors())
 
 require('./utils/createAdmin')()
-require("./utils/createBxm")()
-require("./utils/createBattalions")()
-require('./utils/create.accountnumber')()
+require('./utils/createBxm')()
 
 app.use(express.static(path.join(__dirname, 'public')))
 

@@ -5,11 +5,12 @@ CREATE TABLE users (
     password VARCHAR(100) NOT NULL,
     -- CHECK (LENGTH(password) >= 8)
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    status BOOLEAN DEFAULT false
+    status BOOLEAN DEFAULT false,
+    user_id INTEGER
 );
 
 CREATE TABLE bxm (
-    summa double precision NOT NULL
+    summa double precision NOT NULL,
 );
 
 CREATE TABLE commands (
@@ -19,7 +20,8 @@ CREATE TABLE commands (
     date2 DATE NOT NUll,
     commandnumber double precision NOT NULL,
     status BOOLEAN DEFAULT false,
-    createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER
 );
 
 CREATE TABLE workers (
@@ -27,7 +29,6 @@ CREATE TABLE workers (
     FIO VARCHAR(200) NOT NULL,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-
 );
 
 CREATE TABLE contracts (
@@ -54,7 +55,8 @@ CREATE TABLE contracts (
     taskdate DATE NOT NULL,
     accountnumber VARCHAR(40) NOT NULL,
     tasktimelimit double precision,
-    createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER
 );
 
 CREATE TABLE tasks (
@@ -76,7 +78,8 @@ CREATE TABLE tasks (
     address VARCHAR(500) NOT NULL,
     discount double precision,
     timelimit double precision,
-    createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER
 );
 
 CREATE TABLE worker_tasks (
@@ -117,13 +120,15 @@ CREATE TABLE iib_tasks (
     address VARCHAR(500) NOT NULL,
     discount double precision,
     timelimit double precision,
-    createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER
 );
 
 CREATE TABLE accountNumber(
     id BIGSERIAL NOT NULL PRIMARY KEY,
     accountnumber VARCHAR(50) NOT NULL,
-    createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    user_id INTEGER
 );
 
 CREATE TABLE files (

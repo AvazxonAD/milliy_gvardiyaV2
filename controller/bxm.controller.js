@@ -16,7 +16,6 @@ exports.updateBxm = asyncHandler(async (req, res, next) => {
     if(!req.user.adminstatus) return next(new ErrorResponse("siz admin emasssiz", 403))
     
     const {summa} = req.body
-    
     if(!summa  || typeof summa !== "number"){
         return next(new ErrorResponse("summaga qiymat kiritish zarur", 400))
     }

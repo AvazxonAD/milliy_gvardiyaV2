@@ -65,7 +65,6 @@ exports.create = asyncHandler(async (req, res, next) => {
 
     const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, battalions, discount, taskTime);
     const forBattalion = returnBattalion(oneTimeMoney, battalions, discount, taskTime);
-    console.log(clientAccount)
     const contract = await pool.query(
         `INSERT INTO contracts (
             contractnumber, 
@@ -88,8 +87,9 @@ exports.create = asyncHandler(async (req, res, next) => {
             taskdate,
             accountnumber,
             treasuryaccount27,
-            tasktimelimit
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+            tasktimelimit,
+            user_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
         RETURNING *`,
         [
             contractNumber,
@@ -111,14 +111,15 @@ exports.create = asyncHandler(async (req, res, next) => {
             taskTime,
             taskDate,
             accountNumber,
-            treasuryaccount27.toString(),
-            taskTimeLimit
+            treasuryaccount27 ? treasuryaccount27.toString() : null,
+            taskTimeLimit,
+            req.user.id
         ]
     );
 
     for (let battalion of forBattalion) {
         let tableName = null
-        const user = await pool.query(`SELECT status FROM users WHERE username = $1`, [battalion.name])
+        const user = await pool.query(`SELECT status, id FROM users WHERE username = $1 AND user_id = $2`, [battalion.name, req.user.id])
         if (user.rows[0].status) {
             tableName = `iib_tasks`
         } else {
@@ -139,8 +140,9 @@ exports.create = asyncHandler(async (req, res, next) => {
                 battalionname,
                 address,
                 discount,
-                timelimit
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
+                timelimit,
+                user_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
             RETURNING *`,
             [
                 contract.rows[0].id,
@@ -156,7 +158,8 @@ exports.create = asyncHandler(async (req, res, next) => {
                 battalion.name,
                 address,
                 discount,
-                taskTimeLimit
+                taskTimeLimit,
+                user.rows[0].id
             ]
         );
     }
@@ -747,6 +750,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
     });
 })
 
+// import excel data 
 exports.importExcelData = asyncHandler(async (req, res, next) => {
     if (!req.user || !req.user.adminstatus) {
         return next(new ErrorResponse("Siz admin emassiz", 403));
