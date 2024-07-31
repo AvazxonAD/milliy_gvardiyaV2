@@ -27,6 +27,8 @@ app.use('/account/number', require('./router/accountNumber.router'))
 app.use('/executors', require('./router/executors.router'))
 app.use('/leaders', require('./router/leaders.router'))
 app.use('/address', require('./router/address.router'))
+app.use('/banks', require('./router/banks.router'))
+
 
 app.use(require('./middleware/errorHandler'))
 
