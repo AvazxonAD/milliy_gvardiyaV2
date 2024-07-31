@@ -25,6 +25,7 @@ app.use("/result", require('./router/result.router'))
 app.use('/special', require("./router/special.router"))
 app.use('/account/number', require('./router/accountNumber.router'))
 app.use('/executors', require('./router/executors.router'))
+app.use('/leaders', require('./router/leaders.router'))
 
 app.use(require('./middleware/errorHandler'))
 
