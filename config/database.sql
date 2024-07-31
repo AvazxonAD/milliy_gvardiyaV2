@@ -153,7 +153,7 @@ CREATE TABLE leaders (
 
 CREATE TABLE addresses (
     id BIGSERIAL PRIMARY KEY,
-    adress VARCHAR(100) NOT NULL,
+    address VARCHAR(100) NOT NULL,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
 );
 
