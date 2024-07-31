@@ -28,6 +28,7 @@ CREATE TABLE workers (
     id BIGSERIAL NOT NULL PRIMARY KEY,
     FIO VARCHAR(200) NOT NULL,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    admin_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -43,7 +44,7 @@ CREATE TABLE contracts (
     treasuryaccount VARCHAR(100),
     treasuryaccount27 VARCHAR(100),
     timelimit VARCHAR(500) NOT NULL,
-    address VARCHAR(500),
+    address VARCHAR(500) NOT NUll,
     discount double precision,
     allworkernumber INTEGER NOT NULL,
     allmoney double precision NOT NULL,

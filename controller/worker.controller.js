@@ -29,9 +29,11 @@ exports.create = asyncHandler(async (req, res, next) => {
         }
     }
 
+    const user = await pool.query(`SELECT user_id FROM users WHERE id = $1`, [req.user.id])
+    const admin = await pool.query(`SELECT id FROM users WHERE id = $1`, [user.rows[0].user_id])
     for (let worker of workers) {
-        const fio = await pool.query(`INSERT INTO workers(fio, user_id) VALUES($1, $2) RETURNING *
-            `, [`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`, req.user.id])
+        const fio = await pool.query(`INSERT INTO workers(fio, user_id, admin_id) VALUES($1, $2) RETURNING *
+            `, [`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`, req.user.id, admin.rows[0].id])
         if (!fio.rows[0]) {
             return next(new ErrorResponse("Server xatolik kiritilmadi", 400))
         }
@@ -95,9 +97,14 @@ exports.getElementById = asyncHandler(async (req, res, next) => {
         `, [req.params.id])
     }
     else if (!req.user.adminstatus) {
-        worker = await pool.query(`SELECT fio, id FROM workers WHERE id = $1
-            `, [req.params.id])
+        worker = await pool.query(`SELECT fio, id FROM workers WHERE id = $1 AND user_id = $2
+            `, [req.params.id, req.user.id])
     }
+
+    if(!worker.rows[0]){
+        return next(new ErrorResponse("Xodim topilmadi", 400))
+    }
+
     res.status(200).json({
         success: true,
         data: worker.rows[0]
@@ -120,8 +127,13 @@ exports.getAllBatalyon = asyncHandler(async (req, res, next) => {
 
 // update workers 
 exports.updateWorker = asyncHandler(async (req, res, next) => {
+    const {lastname, firstname, fatherName} = req.body
 
     const worker = await pool.query(`SELECT fio FROM workers WHERE id = $1`, [req.params.id])
+    if(!worker.rows[0]){
+        return next(new ErrorResponse("fio topilmadi server xatolik", 400))
+    }
+
     const fio = `${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`
     
     if (req.user.adminstatus) {
@@ -257,10 +269,9 @@ exports.searchWorker = asyncHandler(async (req, res, next) => {
     }
     worker = await pool.query(`SELECT workers.fio, workers.id, users.username FROM workers 
         JOIN users ON users.id = workers.user_id
-        WHERE fio ILIKE '%' || $1 || '%' 
-        `, [fio.trim()])
-
-    console.log(worker.rows)
+        WHERE fio ILIKE '%' || $1 || '%' AND admin_id = $2 
+        `, [fio.trim(), req.user.id])
+    
 
     return res.status(200).json({
         success: true,
@@ -273,9 +284,9 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
     let workers;
     if (req.user.adminstatus) {
         if (req.query.battalion) {
-            workers = await pool.query(`SELECT workers.fio, users.username FROM workers JOIN users ON workers.user_id = users.id WHERE users.id = $1`, [req.query.id]);
+            workers = await pool.query(`SELECT workers.fio, users.username FROM workers JOIN users ON workers.user_id = users.id WHERE workers.user_id = $1`, [req.query.id]);
         } else {
-            workers = await pool.query(`SELECT workers.fio, users.username FROM workers JOIN users ON workers.user_id = users.id`);
+            workers = await pool.query(`SELECT workers.fio, users.username FROM workers JOIN users ON workers.user_id = users.id WHERE admin_id = $1`, [req.user.id]);
         }
     } else {
         workers = await pool.query(`SELECT workers.fio, users.username FROM workers JOIN users ON workers.user_id = users.id WHERE users.id = $1`, [req.user.id]);
@@ -339,6 +350,10 @@ exports.importExcel = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse(`Isim Familya Ochistva imloviy xatolarsiz kriting: ${rowData.fio}`, 400))
         }
     }
+
+    const user = await pool.query(`SELECT user_id FROM users WHERE id = $1`, [req.user.id])
+    const admin = await pool.query(`SELECT id FROM users WHERE id = $1`, [user.rows[0].user_id])
+
     for (const rowData of data) {
         const fio = rowData.fio.trim();
         if (fio.toLowerCase().trim() === 'vakant' || fio.toLowerCase().trim() === 'вакант') {
@@ -351,7 +366,7 @@ exports.importExcel = asyncHandler(async (req, res, next) => {
         }
 
 
-        await pool.query(`INSERT INTO workers (fio, user_id) VALUES($1, $2)`, [fio.trim(), req.user.id]);
+        await pool.query(`INSERT INTO workers (fio, user_id, admin_id) VALUES($1, $2, $3)`, [fio.trim(), req.user.id, admin.rows[0].id]);
     }
 
     return res.status(201).json({
@@ -362,11 +377,10 @@ exports.importExcel = asyncHandler(async (req, res, next) => {
 
 // for push 
 exports.forPush = asyncHandler(async (req, res, next) => {
-    workers = await pool.query(`SELECT * FROM workers 
+    workers = await pool.query(`SELECT fio FROM workers 
             WHERE user_id = $1
             ORDER BY fio ASC
         `, [req.user.id])
-    total = await pool.query(`SELECT COUNT(id) AS total FROM workers WHERE user_id = $1`, [req.user.id])
 
     return res.status(200).json({
         success: true,

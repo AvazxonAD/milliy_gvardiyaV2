@@ -31,10 +31,10 @@ exports.sumMoney = (discount, timemoney, tasktime) => {
     if (discount) {
         const discountAmount = total * (discount / 100);
         result.summa = Math.round((total - discountAmount) * 100) / 100 
-        result.timemoney = result.summa / tasktime
+        result.timemoney = Math.round((result.summa / tasktime) * 100) / 100 
         return result
     }
     result.summa = Math.round(total * 100) / 100;
-    result.timemoney = result.summa / tasktime
+    result.timemoney = Math.round((result.summa / tasktime) * 100) / 100 
     return result
 }

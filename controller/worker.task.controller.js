@@ -19,9 +19,10 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
     const { workers } = req.body;
 
     const taskResult = await pool.query(
-        `SELECT * FROM tasks WHERE id = $1 AND battalionname = $2`,
-        [req.params.id, req.user.username]
+        `SELECT * FROM tasks WHERE id = $1 AND user_id = $2`,
+        [req.params.id, req.user.id]
     );
+
     const task = taskResult.rows[0];
     if (!task || task.notdone || task.done) {
         return next(new ErrorResponse('Bu topshiriq vaqtida bajarilmagan yoki allaqachon bajarilgan', 400));
@@ -53,9 +54,9 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
     }
 
     let remainingTime = await pool.query(`SELECT SUM(tasktime) AS tasktime FROM worker_tasks WHERE task_id = $1`, [task.id])
-    
-    if(testTime > ((task.tasktime * task.workernumber) - remainingTime.rows[0].tasktime)){
-        return next(new ErrorResponse(`Ushbu topshiriq uchun kiritiladigan vaqtning qoldig'i ${(task.tasktime * task.workernumber) - remainingTime.rows[0].tasktime}`, 400))
+    const time = ((task.tasktime * task.workernumber) - remainingTime.rows[0].tasktime)
+    if(testTime > time){
+        return next(new ErrorResponse(`Ushbu topshiriq uchun kiritiladigan vaqtning qoldig'i ${time}`, 400))
     }
 
     for(let worker of workers){
@@ -97,8 +98,8 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
         );
     }
     remainingTime = await pool.query(`SELECT SUM(tasktime) AS tasktime FROM worker_tasks WHERE task_id = $1`, [task.id])
-    
-    if(((task.tasktime * task.workernumber) - remainingTime.rows[0].tasktime) === 0){
+    const resultTime = ((task.tasktime * task.workernumber) - remainingTime.rows[0].tasktime)
+    if( resultTime === 0){
         await pool.query(
             `UPDATE tasks SET inprogress = $1, done = $2, notdone = $3 WHERE id = $4`,
             [false, true, false, req.params.id]

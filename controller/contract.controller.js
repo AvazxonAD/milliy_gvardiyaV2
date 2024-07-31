@@ -173,6 +173,7 @@ exports.create = asyncHandler(async (req, res, next) => {
         data: contract.rows[0]
     });
 });
+
 // update contracts 
 exports.update = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
@@ -655,12 +656,12 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
     });
 
     for (let data of datas) {
-        if (!data || !data.clientname || !data.contractnumber || !data.contractdate || !data.tasktime || !data.timelimit || !data.taskdate) {
+        if (!data || !data.clientname || !data.contractnumber || !data.contractdate || !data.tasktime || !data.timelimit || !data.taskdate || !data.address) {
             return next(new ErrorResponse("Sorovlar bosh qolishi mumkin emas excel fileni tekshiring", 400));
         }
     }
 
-    let accountnumber = await pool.query(`SELECT accountnumber FROM accountnumber`);
+    let accountnumber = await pool.query(`SELECT accountnumber FROM accountnumber WHERE user_id = $1`, [req.user.id]);
     accountnumber = accountnumber.rows[0].accountnumber;
 
     for (let data of datas) {
@@ -685,6 +686,9 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
     for(let data of datas){
         const bxm = await pool.query(`SELECT * FROM bxm`);
         const oneTimeMoney = Math.round((bxm.rows[0].summa * 0.07) * 100) / 100;
+        
+        let contractDate = returnDate(data.contractdate.toString().trim());
+        let taskDate = returnDate(data.taskdate.toString().trim());
 
         const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, data.battalions, null, data.tasktime);
         const forBattalion = returnBattalion(oneTimeMoney, data.battalions, null, data.tasktime);
@@ -704,15 +708,16 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                 discountmoney,
                 tasktime,
                 taskdate,
-                accountnumber
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                accountnumber,
+                user_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING *`,
             [
                 data.contractnumber,
                 contractDate,
                 data.clientname.trim(),
                 data.timelimit,
-                data.address ? data.address.trim() : null,
+                data.address.trim(),
                 null,
                 forContract.workerNumber,
                 forContract.allMoney,
@@ -721,12 +726,13 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                 forContract.discountMoney,
                 data.tasktime,
                 returnDate(data.taskdate.toString().trim()),
-                accountnumber
+                accountnumber,
+                req.user.id
             ]
         );
 
         for (let battalion of forBattalion) {
-            const user = await pool.query(`SELECT status FROM users WHERE username = $1`, [battalion.name]);
+            const user = await pool.query(`SELECT status, id FROM users WHERE username = $1`, [battalion.name]);
             let tableName = null;
             if (user.rows[0].status) {
                 tableName = `iib_tasks`;
@@ -747,8 +753,9 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                     money,
                     discountmoney,
                     battalionname,
-                    address
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+                    address,
+                    user_id
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
                 [
                     contract.rows[0].id,
                     data.contractnumber,
@@ -761,7 +768,8 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                     battalion.money,
                     battalion.discountMoney,
                     battalion.name,
-                    data.address ? data.address.trim() : null
+                    data.address.trim(),
+                    user.rows[0].id
                 ]
             );
         }
@@ -901,8 +909,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
         );
 
         // For loop to insert battalion data
-        for (let j = 0; j < forBattalion.length; j++) {
-            const battalion = forBattalion[j];
+        for (let battalion of forBattalion) {
             let tableName = null;
             const user = await pool.query(`SELECT status, id FROM users WHERE username = $1 AND user_id = $2`, [battalion.name, req.user.id])
             if (user.rows[0].status) {
