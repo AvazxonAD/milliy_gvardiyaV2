@@ -10,7 +10,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE bxm (
-    summa double precision NOT NULL,
+    summa double precision NOT NULL
 );
 
 CREATE TABLE commands (
@@ -133,8 +133,44 @@ CREATE TABLE accountNumber(
 );
 
 CREATE TABLE files (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     filename VARCHAR(255) NOT NULL,
     file_data BYTEA NOT NULL,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE executors (
+    id BIGSERIAL PRIMARY KEY,
+    executor VARCHAR(500) NOT NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE leaders (
+    id BIGSERIAL PRIMARY KEY,
+    leader VARCHAR(100) NOT NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE addresses (
+    id BIGSERIAL PRIMARY KEY,
+    adress VARCHAR(100) NOT NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE banks (
+    id BIGSERIAL PRIMARY KEY,
+    bank VARCHAR(100) NOT NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE mfos (
+    id BIGSERIAL PRIMARY KEY,
+    mfo VARCHAR(100) NOT NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE strs (
+    id BIGSERIAL PRIMARY KEY,
+    str VARCHAR(100) NOT NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
 );
