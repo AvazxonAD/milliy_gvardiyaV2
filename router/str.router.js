@@ -7,12 +7,12 @@ const {
     create,
     getAll,
     update,
-    deletemfos,
-} = require('../controller/mfos.controller')
+    deletestrs,
+} = require('../controller/strs.controller')
 
 router.post("/create", protect, create)
 router.get('/get/all', protect, getAll)
 router.put("/update/:id", protect, update)
-router.delete("/delete/:id", protect, deletemfos )
+router.delete("/delete/:id", protect, deletestrs)
 
 module.exports = router
