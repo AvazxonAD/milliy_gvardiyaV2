@@ -4,6 +4,10 @@ const ErrorResponse = require("../utils/errorResponse");
 
 // get bxm 
 exports.getBxm = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+    
     const bxm = await pool.query(`SELECT * FROM bxm`)
     return res.status(200).json({
         success: true,
@@ -13,7 +17,9 @@ exports.getBxm = asyncHandler(async (req, res, next) => {
 
 // update bxm 
 exports.updateBxm = asyncHandler(async (req, res, next) => {
-    if(!req.user.adminstatus) return next(new ErrorResponse("siz admin emasssiz", 403))
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
     
     const {summa} = req.body
     if(!summa  || typeof summa !== "number"){

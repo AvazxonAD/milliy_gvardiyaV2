@@ -20,6 +20,10 @@ const pool = require("../config/db");
 
 // create contract
 exports.create = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+    
     let {
         contractNumber,
         contractDate,
@@ -169,9 +173,12 @@ exports.create = asyncHandler(async (req, res, next) => {
         data: contract.rows[0]
     });
 });
-
 // update contracts 
 exports.update = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("Siz admin emassiz", 403));
+    }
+    
     let {
         contractNumber,
         contractDate,
@@ -192,7 +199,6 @@ exports.update = asyncHandler(async (req, res, next) => {
         treasuryaccount27
     } = req.body;
 
-    // Check required fields
     if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
@@ -208,18 +214,15 @@ exports.update = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
     }
 
-    if (!formattedContractDate || !formattedTaskDate) {
-        return next(new ErrorResponse("Sana formatini to'g'ri kiriting. Masalan: 01.01.2024", 403));
-    }
-
     // Fetch one-time money
     const bxm = await pool.query(`SELECT * FROM bxm`);
     const oneTimeMoney = Math.round(((bxm.rows[0].summa * 0.07) * 100) / 100);
+
     // Calculate contract details
     const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, battalions, discount, taskTime);
     const forBattalion = returnBattalion(oneTimeMoney, battalions, discount, taskTime);
+
     // Update contract
-    
     const contract = await pool.query(
         `UPDATE contracts SET 
             contractnumber = $1, 
@@ -240,13 +243,13 @@ exports.update = asyncHandler(async (req, res, next) => {
             discountmoney = $16,
             accountnumber = $17,
             treasuryaccount27 = $18,
-            contractdate = $19,
+            tasktimelimit = $19,
             taskdate = $20
         WHERE id = $21
-        RETURNING id`,
+        RETURNING *`,
         [
             contractNumber,
-            formattedContractDate,
+            contractDate,
             clientName,
             clientAddress,
             clientMFO,
@@ -263,7 +266,7 @@ exports.update = asyncHandler(async (req, res, next) => {
             Math.round((forContract.discountMoney * 100) / 100),
             accountNumber,
             treasuryaccount27,
-            contractDate,
+            taskTimeLimit,
             taskDate,
             req.params.id
         ]
@@ -271,16 +274,16 @@ exports.update = asyncHandler(async (req, res, next) => {
 
     // Delete old tasks
     await pool.query(`DELETE FROM tasks WHERE contract_id = $1`, [req.params.id]);
-    await pool.query(`DELETE FROM worker_tasks WHERE contract_id = $1`, [req.params.id])
+    await pool.query(`DELETE FROM worker_tasks WHERE contract_id = $1`, [req.params.id]);
     await pool.query(`DELETE FROM iib_tasks WHERE contract_id = $1`, [req.params.id]);
 
     for (let battalion of forBattalion) {
-        let tableName = null
-        const user = await pool.query(`SELECT status FROM users WHERE username = $1`, [battalion.name])
+        let tableName = null;
+        const user = await pool.query(`SELECT status, id FROM users WHERE username = $1`, [battalion.name]);
         if (user.rows[0].status) {
-            tableName = `iib_tasks`
+            tableName = `iib_tasks`;
         } else {
-            tableName = `tasks`
+            tableName = `tasks`;
         }
 
         const task = await pool.query(
@@ -298,8 +301,9 @@ exports.update = asyncHandler(async (req, res, next) => {
                 battalionname,
                 address,
                 discount,
-                timelimit
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
+                timelimit,
+                user_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
             RETURNING *`,
             [
                 contract.rows[0].id,
@@ -315,20 +319,26 @@ exports.update = asyncHandler(async (req, res, next) => {
                 battalion.name,
                 address,
                 discount,
-                taskTimeLimit
+                taskTimeLimit,
+                user.rows[0].id
             ]
         );
     }
 
     return res.status(201).json({
         success: true,
-        data: "Yangilandi"
+        data: contract.rows
     });
 });
 
 
+
 // get all contracts
 exports.getAllcontracts = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+    
     const limit = parseInt(req.query.limit) || 10;
     const page = parseInt(req.query.page) || 1;
 
@@ -341,10 +351,11 @@ exports.getAllcontracts = asyncHandler(async (req, res, next) => {
     const contractsQuery = await pool.query(
         `SELECT id, contractnumber, contractdate, clientname, address 
         FROM contracts 
+        WHERE user_id = $1
         ORDER BY contractnumber
-        OFFSET $1 
-        LIMIT $2`,
-        [offset, limit]
+        OFFSET $2 
+        LIMIT $3`,
+        [req.user.id, offset, limit]
     );
 
     const result = contractsQuery.rows.map(contract => {
@@ -352,7 +363,7 @@ exports.getAllcontracts = asyncHandler(async (req, res, next) => {
         return contract;
     });
 
-    const totalQuery = await pool.query(`SELECT COUNT(id) AS total FROM contracts`);
+    const totalQuery = await pool.query(`SELECT COUNT(id) AS total FROM contracts WHERE user_id = $1`, [req.user.id]);
     const total = parseInt(totalQuery.rows[0].total);
     const pageCount = Math.ceil(total / limit);
 
@@ -420,6 +431,10 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
 
 // to print
 exports.toPrint = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+    
     const contractId = req.params.id;
 
     const contractQuery = await pool.query(`SELECT * FROM contracts WHERE id = $1`, [contractId]);
@@ -446,6 +461,10 @@ exports.toPrint = asyncHandler(async (req, res, next) => {
 
 // delete contract 
 exports.deleteContract = asyncHandler(async (req, res, next) => {
+    if (!req.user.adminstatus) {
+        return next(new ErrorResponse("siz admin emassiz", 403))
+    }
+    
     const contract = await pool.query(`DELETE FROM contracts WHERE id = $1 RETURNING id `, [req.params.id])
 
     if (!contract.rows[0]) {
@@ -463,6 +482,7 @@ exports.taskOfWorker = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
         return next(new ErrorResponse("siz admin emassiz", 403))
     }
+
     let workers = null
     if (req.query.task) {
         workers = await pool.query(`SELECT worker_name FROM worker_tasks WHERE task_id  = $1`, [req.params.id])
@@ -498,10 +518,10 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
     const contractsQuery = `
         SELECT id, contractnumber, contractdate, clientname, address
         FROM contracts
-        WHERE contractdate BETWEEN $1 AND $2
+        WHERE  contractdate BETWEEN $1 AND $2 AND user_id = $3
     `;
 
-    const contracts = await pool.query(contractsQuery, [parsedDate1, parsedDate2]);
+    const contracts = await pool.query(contractsQuery, [parsedDate1, parsedDate2, req.user.id]);
 
     // Sanani qayta ishlash va formatlash
     const formattedContracts = contracts.rows.map(contract => {
@@ -569,8 +589,8 @@ exports.forContractBatalyonns = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
         return next(new ErrorResponse("siz admin emassiz", 403))
     }
-    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1
-    `, [false])
+    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1 AND user_id = $2
+    `, [false, req.user.id])
 
     res.status(200).json({
         success: true,
@@ -587,9 +607,9 @@ exports.search = asyncHandler(async (req, res, next) => {
 
     let contractQuery = await pool.query(
         `SELECT clientname, clientaddress, clientmfo, clientaccount, clientstr, treasuryaccount, address, timelimit
-        FROM contracts WHERE clientname = $1
+        FROM contracts WHERE clientname = $1 AND user_id = $2
         ORDER BY createdat DESC`,
-        [clientName.trim()]
+        [clientName.trim(), req.user.id]
     );
 
     return res.status(200).json({
@@ -598,6 +618,7 @@ exports.search = asyncHandler(async (req, res, next) => {
     });
 })
 
+// import excel data 
 exports.importExcelData = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
         return next(new ErrorResponse("siz admin emassiz", 403));
@@ -659,7 +680,9 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
         if (!contractDate || !taskDate) {
             return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
         }
+    }
 
+    for(let data of datas){
         const bxm = await pool.query(`SELECT * FROM bxm`);
         const oneTimeMoney = Math.round((bxm.rows[0].summa * 0.07) * 100) / 100;
 
@@ -802,7 +825,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
     }
 
 
-    let accountnumberResult = await pool.query(`SELECT accountnumber FROM accountnumber`);
+    let accountnumberResult = await pool.query(`SELECT accountnumber FROM accountnumber WHERE user_id = $1`, [req.user.id]);
     let accountnumber = accountnumberResult.rows[0].accountnumber;
 
     for (let data of datas) {
@@ -820,6 +843,13 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
         const taskDate = returnDate(data.taskdate.trim());
         if (!contractDate || !taskDate) {
             return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
+        }
+
+        for(let battalion of data.battalions){
+            const user = await pool.query(`SELECT status, id FROM users WHERE username = $1 AND user_id = $2`, [battalion.name, req.user.id])
+            if(!user.rows[0]){
+                return next(new ErrorResponse(`Batalon nomi notog'ri : ${battalion.name}`))
+            }
         }
     }
 
@@ -847,8 +877,9 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                 discountmoney,
                 tasktime,
                 taskdate,
-                accountnumber
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                accountnumber,
+                user_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             RETURNING *`,
             [
                 data.contractnumber,
@@ -864,19 +895,20 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                 forContract.discountMoney,
                 data.tasktime,
                 taskDate,
-                accountnumber
+                accountnumber,
+                req.user.id
             ]
         );
 
         // For loop to insert battalion data
         for (let j = 0; j < forBattalion.length; j++) {
             const battalion = forBattalion[j];
-            const userResult = await pool.query(`SELECT status FROM users WHERE username = $1`, [battalion.name]);
             let tableName = null;
-            if (userResult.rows[0].status) {
-                tableName = `iib_tasks`;
+            const user = await pool.query(`SELECT status, id FROM users WHERE username = $1 AND user_id = $2`, [battalion.name, req.user.id])
+            if (user.rows[0].status) {
+                tableName = `iib_tasks`
             } else {
-                tableName = `tasks`;
+                tableName = `tasks`
             }
             await pool.query(
                 `INSERT INTO ${tableName} (
@@ -891,8 +923,9 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                     money,
                     discountmoney,
                     battalionname,
-                    address
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+                    address,  
+                    user_id
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
                 [
                     contractResult.rows[0].id,
                     data.contractnumber,
@@ -905,7 +938,8 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
                     battalion.money,
                     battalion.discountMoney,
                     battalion.name,
-                    data.address ? data.address.trim() : 'address'
+                    data.address ? data.address.trim() : 'address',
+                    user.rows[0].id
                 ]
             );
         }
@@ -919,6 +953,10 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
 
 // update contracts info 
 exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
+    if (!req.user || !req.user.adminstatus) {
+        return next(new ErrorResponse("Siz admin emassiz", 403));
+    }
+
     const { address, contractNumber, contractDate, clientName, clientAccount, clientAddress, clientMFO, clientSTR, treasuryAccount, timeLimit, accountNumber } = req.body
 
     if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !accountNumber) {
@@ -951,12 +989,16 @@ exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
 
 // search contract by number 
 exports.searchByNumber = asyncHandler(async (req, res, next) => {
+    if (!req.user || !req.user.adminstatus) {
+        return next(new ErrorResponse("Siz admin emassiz", 403));
+    }
+    
     const { contractNumber } = req.body
     if (!contractNumber) {
         return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
     }
 
-    const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE contractnumber = $1`, [contractNumber])
+    const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE contractnumber = $1 AND user_id = $2`, [contractNumber, req.user.id])
 
     return res.status(200).json({
         success: true,
@@ -966,12 +1008,16 @@ exports.searchByNumber = asyncHandler(async (req, res, next) => {
 
 // search contract by client name  
 exports.searchByClientName = asyncHandler(async (req, res, next) => {
+    if (!req.user || !req.user.adminstatus) {
+        return next(new ErrorResponse("Siz admin emassiz", 403));
+    }
+    
     const { clientName } = req.body
     if (!clientName) {
         return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
     }
 
-    const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE clientname = $1`, [clientName.trim()])
+    const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE clientname = $1 AND user_id = $2`, [clientName.trim(), req.user.id])
 
     return res.status(200).json({
         success: true,
@@ -981,12 +1027,16 @@ exports.searchByClientName = asyncHandler(async (req, res, next) => {
 
 // search contract by address  
 exports.searchByAddress = asyncHandler(async (req, res, next) => {
+    if (!req.user || !req.user.adminstatus) {
+        return next(new ErrorResponse("Siz admin emassiz", 403));
+    }
+    
     const { address } = req.body
     if (!address) {
         return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
     }
 
-    const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE address = $1`, [address.trim()])
+    const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE address = $1 AND user_id = $2`, [address.trim(), req.user.id])
 
     return res.status(200).json({
         success: true,
@@ -994,6 +1044,7 @@ exports.searchByAddress = asyncHandler(async (req, res, next) => {
     })
 })
 
+// create excel for report 
 exports.createExcelForReport = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
         return next(new ErrorResponse("Siz admin emassiz", 403));
@@ -1016,16 +1067,16 @@ exports.createExcelForReport = asyncHandler(async (req, res, next) => {
         SELECT 
         id, clientname, contractnumber, contractdate, money, discount, discountmoney, allmoney, allworkernumber, tasktime, timelimit  
         FROM contracts 
-        where contractdate BETWEEN $1 AND $2
+        where contractdate BETWEEN $1 AND $2 AND user_id = $3
         ORDER BY contractnumber
-    `, [parsedDate1, parsedDate2]);
+    `, [parsedDate1, parsedDate2, req.user.id]);
 
     if(!contracts.rows.length){
         return next(new ErrorResponse('Bu vaqt orasida contractlar mavjud emas', 400))
     }
 
-    const battalions = await pool.query(`SELECT username FROM users WHERE adminstatus = $1 AND status = $2`, [false, false]);
-    const iib_battalions = await pool.query(`SELECT username FROM users WHERE adminstatus = $1 AND status = $2`, [false, true]);
+    const battalions = await pool.query(`SELECT username FROM users WHERE adminstatus = $1 AND status = $2 AND user_id = $3`, [false, false, req.user.id]);
+    const iib_battalions = await pool.query(`SELECT username FROM users WHERE adminstatus = $1 AND status = $2 AND user_id = $3`, [false, true, req.user.id]);
     
     let resultArray = [];
     for (let contract of contracts.rows) {

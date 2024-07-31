@@ -5,6 +5,7 @@ const pool = require("../config/db");
 const xlsx = require('xlsx');
 const { returnStringDate } = require("../utils/date.function");
 
+// create worker 
 exports.create = asyncHandler(async (req, res, next) => {
     const { workers } = req.body
     if (!workers || workers.length < 1) {
@@ -121,6 +122,8 @@ exports.getAllBatalyon = asyncHandler(async (req, res, next) => {
 exports.updateWorker = asyncHandler(async (req, res, next) => {
 
     const worker = await pool.query(`SELECT fio FROM workers WHERE id = $1`, [req.params.id])
+    const fio = `${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`
+    
     if (req.user.adminstatus) {
         const { batalyon, lastname, firstname, fatherName } = req.body
         if (!lastname || !firstname || !fatherName, !batalyon) {
@@ -136,17 +139,18 @@ exports.updateWorker = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse("Batalyon topilmadi server xatolik", 400))
         }
 
-        if (worker.rows[0].fio !== `${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`) {
+
+        if (worker.rows[0].fio !== fio) {
             const testFIO = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2
-                `, [`${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`, batalyonId.rows[0].id])
+                `, [fio, batalyonId.rows[0].id])
 
             if (testFIO.rows[0]) {
-                return next(new ErrorResponse(`Bu fio oldin kiritilgan : ${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`,))
+                return next(new ErrorResponse(`Bu fio oldin kiritilgan : ${fio}`,))
             }
         }
 
         const updateUser = await pool.query(` UPDATE workers SET fio = $1, user_id = $2 WHERE id = $3 RETURNING * 
-        `, [`${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`, batalyonId.rows[0].id, req.params.id])
+        `, [fio, batalyonId.rows[0].id, req.params.id])
 
         return res.status(200).json({
             success: true,
@@ -163,13 +167,13 @@ exports.updateWorker = asyncHandler(async (req, res, next) => {
         // if (!test) {
         //     return next(new ErrorResponse("Isim Familya Ochistva bosh harifda bolishi zarur", 400))
         // }
-
-        if (worker.rows[0].fio !== `${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`) {
+        
+        if (worker.rows[0].fio !== fio) {
             const testFIO = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2
-                `, [`${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`, req.user.id])
+                `, [fio, req.user.id])
 
             if (testFIO.rows[0]) {
-                return next(new ErrorResponse(`Bu fio oldin kiritilgan : ${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`,))
+                return next(new ErrorResponse(`Bu fio oldin kiritilgan : ${fio}`,))
             }
         }
 
@@ -178,7 +182,7 @@ exports.updateWorker = asyncHandler(async (req, res, next) => {
                 SET fio = $1
                 WHERE id = $2
                 RETURNING * 
-            `, [`${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`, req.params.id])
+            `, [fio, req.params.id])
 
         return res.status(200).json({
             success: true,
