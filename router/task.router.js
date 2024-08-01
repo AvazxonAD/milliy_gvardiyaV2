@@ -9,7 +9,8 @@ const {
     filterByDate,
     taskWorkers,
     getTaskInfoModal,
-    getById
+    getById,
+    deleteWorker
 } = require('../controller/task.controller')
 
 router.get('/get/tasks', protect, getAllTasks)
@@ -18,6 +19,7 @@ router.post('/filter/by/date', protect, filterByDate)
 router.get('/get/task/workers/:id', protect, taskWorkers)
 router.get('/get/info/:id', protect, getTaskInfoModal)
 router.get('/get/by/id/:id', protect, getById)
+router.post('/delete/worker/:id', protect, deleteWorker)
 
 
 module.exports = router

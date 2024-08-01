@@ -12,14 +12,15 @@ exports.login = asyncHandler(async (req, res, next) => {
     }
     
     const user = await pool.query(`SELECT * FROM users WHERE username = $1`, [username]);
+    
+    if (!user.rows[0] || user.rows[0].password !== password) {
+        return next(new ErrorResponse("Username yoki parol xato kiritildi", 403));
+    }
 
     if(user.rows[0].status){
         return next(new ErrorResponse("Username yoki parol xato kiritildi", 403))
     }
 
-    if (!user.rows[0] || user.rows[0].password !== password) {
-        return next(new ErrorResponse("Username yoki parol xato kiritildi", 403));
-    }
 
     const token = generateToken(user.rows[0]);
 

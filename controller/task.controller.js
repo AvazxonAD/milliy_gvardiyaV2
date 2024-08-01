@@ -16,23 +16,23 @@ exports.getAllTasks = asyncHandler(async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const offset = (page - 1) * limit;
     
-    // let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE battalionname = $1 `, [req.user.username])
-    // let tests = blockTask(taskTest.rows)
-    // for (let test of tests) {
-    //     await pool.query(`UPDATE tasks 
-    //         SET notdone = $1, done = $2, inprogress = $3
-    //         WHERE id = $4
-    //         `, [true, false, false, test.id])
-    // }
+    /*let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE battalionname = $1 `, [req.user.username])
+    let tests = blockTask(taskTest.rows)
+    for (let test of tests) {
+        await pool.query(`UPDATE tasks 
+            SET notdone = $1, done = $2, inprogress = $3
+            WHERE id = $4
+            `, [true, false, false, test.id])
+    }*/
 
     const tasks = await pool.query(`
         SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, timelimit, inProgress, done, notdone, address 
         FROM tasks 
-        WHERE user_id = $1 AND contractnumber > $4
+        WHERE user_id = $1
         ORDER BY contractnumber 
         OFFSET $2 
         LIMIT $3
-    `, [req.user.id, offset, limit, 61]);
+    `, [req.user.id, offset, limit]);
 
     // Format task dates
     const result = tasks.rows.map(task => {
@@ -112,7 +112,7 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
 // get all task workers 
 exports.taskWorkers = asyncHandler(async (req, res, next) => {
     const workers = await pool.query(`
-        SELECT worker_name 
+        SELECT worker_name, task_id
         FROM worker_tasks 
         WHERE user_id = $1 AND task_id = $2
     `, [req.user.id, req.params.id]);
@@ -122,6 +122,38 @@ exports.taskWorkers = asyncHandler(async (req, res, next) => {
         data: workers.rows
     });
 });
+
+// delete worker 
+exports.deleteWorker = asyncHandler(async (req, res, next) => {
+    const {worker_name} = req.body
+    const worker_task = await pool.query(`DELETE FROM worker_tasks WHERE task_id = $1 AND worker_name = $2 AND pay = $3 RETURNING id `, [req.params.id, worker_name, false])
+    
+    if(!worker_task.rows[0]){
+        return next(new ErrorResponse(`${worker_name} uchun xizmat puli tolab bolingan endi ushbu amalni bajara olmaysiz`, 400))
+    }
+
+    if(worker_task.rows[0]){
+        const task = await pool.query(`SELECT * FROM tasks WHERE id = $1`, [req.params.id])
+        if(task.rows[0].done){
+            await pool.query(`UPDATE tasks SET done = $1, notdone = $2, inprogress = $3 WHERE id = $4`, [false, false, true, req.params.id])
+ 
+        }
+
+        /*let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE battalionname = $1 `, [req.user.username])
+        let tests = blockTask(taskTest.rows)
+        for (let test of tests) {
+            await pool.query(`UPDATE tasks 
+                SET notdone = $1, done = $2, inprogress = $3
+                WHERE id = $4
+                `, [true, false, false, test.id])
+        }*/
+        
+        return res.status(200).json({
+            success: true,
+            data: "DELETE TRUE"
+        })
+    }
+})
 
 // task info modal 
 exports.getTaskInfoModal = asyncHandler(async (req, res, next) => {
@@ -144,12 +176,18 @@ exports.getTaskInfoModal = asyncHandler(async (req, res, next) => {
 
 // get element by id 
 exports.getById = asyncHandler(async (req, res, next) => {
-    const task = await pool.query(`SELECT * FROM tasks WHERE id = $1 AND user_id = $2`, [req.params.id, req.user.id])
-    if(!task.rows[0]){
+    const rows = await pool.query(`SELECT * FROM tasks WHERE id = $1 AND user_id = $2`, [req.params.id, req.user.id])
+    if(!rows.rows[0]){
         return next(new ErrorResponse('server xatolik topshiriq topilmadi', 400))
     }
+    
+    const task = rows.rows.map(item => {
+        item.taskdate = returnStringDate(item.taskdate)
+        return item
+    })
+
     return res.status(200).json({
         success: true,
-        data: task.rows[0]
+        data: task[0]
     })
 })
