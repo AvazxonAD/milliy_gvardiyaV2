@@ -26,9 +26,14 @@ exports.resultCreate = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
     }
 
-    const worker_tasks = await pool.query(`SELECT * FROM worker_tasks WHERE ispay = $1 AND pay = $2 AND taskdate < $3
-        `,[true, false, date2])
-    if(worker_tasks.rows.length === 0){
+    const battalions = await pool.query(`SELECT * FROM users WHERE user_id = $1 AND status = $2`, [req.user.id, false])
+    let test = 0
+    for(let battalion of battalions.rows){
+        const worker_tasks = await pool.query(`SELECT * FROM worker_tasks WHERE ispay = $1 AND pay = $2 AND taskdate < $3 AND user_id = $4
+            `,[true, false, date2, battalion.id])
+        test+= worker_tasks.rows.length
+    }
+    if(test === 0){
         return next(new ErrorResponse('ushbu muddat ichida hech bir batalyon ommaviy tadbirda ishtirok etmadi yoki hali buyurtmachilar tomonidan pul otkazilmadi', 400))
     }
 
@@ -47,38 +52,6 @@ exports.resultCreate = asyncHandler(async (req, res, next) => {
     })
 })
 
-// get battalion and workers 
-exports.getBattalionAndWorkers = asyncHandler(async (req, res, next) => {
-    const command = await pool.query(`SELECT id, commandnumber, commanddate, date1, date2  FROM commands WHERE id = $1`, [req.params.id])
-    let resultCommand  = command.rows.map(command => {
-        command.commanddate = returnStringDate(command.commanddate)
-        command.date1 = returnStringDate(command.date1)
-        command.date2 = returnStringDate(command.date2)
-        return command  
-    })
-
-    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1 AND status = $2
-    `, [false, true])
-    
-        let result = []
-
-    for(let battalion of batalyons.rows){
-        const workers = await pool.query(`SELECT DISTINCT(worker_name), SUM(summa) AS allSumma
-            FROM worker_tasks 
-            WHERE command_id = $1 AND user_id = $2 
-            GROUP BY worker_name
-            `,[req.params.id, battalion.id])
-
-        if(workers.rows.length !== 0){
-            result.push({batalyonName: battalion.username, workers: workers.rows})
-        }
-    }
-    return res.status(200).json({
-        success: true,
-        data: result,
-        command: resultCommand
-    })
-})
 
 // get all commands
 exports.getAllCommand = asyncHandler(async (req, res, next) => {
@@ -123,6 +96,38 @@ exports.getAllCommand = asyncHandler(async (req, res, next) => {
     });
 });
 
+// get battalion and workers 
+exports.getBattalionAndWorkers = asyncHandler(async (req, res, next) => {
+    const command = await pool.query(`SELECT id, commandnumber, commanddate, date1, date2  FROM commands WHERE id = $1`, [req.params.id])
+    let resultCommand  = command.rows.map(command => {
+        command.commanddate = returnStringDate(command.commanddate)
+        command.date1 = returnStringDate(command.date1)
+        command.date2 = returnStringDate(command.date2)
+        return command  
+    })
+
+    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1 AND status = $2 AND user_id = $3
+    `, [false, false, req.user.id])
+    
+        let result = []
+
+    for(let battalion of batalyons.rows){
+        const workers = await pool.query(`SELECT DISTINCT(worker_name), SUM(summa) AS allSumma
+            FROM worker_tasks 
+            WHERE command_id = $1 AND user_id = $2 
+            GROUP BY worker_name
+            `,[req.params.id, battalion.id])
+        if(workers.rows.length !== 0){
+            result.push({batalyonName: battalion.username, workers: workers.rows})
+        }
+    }
+    return res.status(200).json({
+        success: true,
+        data: result,
+        command: resultCommand
+    })
+})
+
 // filter by date
 exports.filterByDate = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
@@ -141,8 +146,8 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
     const commands = await pool.query(
         `SELECT id, commandnumber, commanddate
          FROM commands
-         WHERE status = $1 AND commanddate BETWEEN $2 AND $3`,
-        [false, date1, date2]
+         WHERE status = $1 AND commanddate BETWEEN $2 AND $3 AND user_id = $4`,
+        [false, date1, date2, req.user.id]
     );
 
     // Natijalarni formatlash
