@@ -106,7 +106,7 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
 
     for (let batalyon of batalyons.rows) {
         const payTasksQuery = `
-                SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney, tasktime
+                SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney, tasktime, timemoney
                 FROM iib_tasks 
                 WHERE user_id = $1 
                 AND command_id = $2
@@ -156,7 +156,6 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
         ]);
 
         if (tasks.rows.length !== 0 || payTasks.rows.length !== 0) {
-            console.log(batalyon.username)
             resultArray.push({
                 batalyonName: batalyon.username,
                 payContracts: resultPayTasks,
@@ -242,7 +241,7 @@ exports.getSpecialData = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("Birgada topilmadi", 404));
     }
 
-    let payTasks = await pool.query(`SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney, tasktime
+    let payTasks = await pool.query(`SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney
         FROM iib_tasks 
         WHERE user_id = $1 AND pay = $2`,
         [batalyon.rows[0].id, true]
@@ -253,7 +252,7 @@ exports.getSpecialData = asyncHandler(async (req, res, next) => {
         return task;
     });
 
-    let tasks = await pool.query(`SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney, tasktime
+    let tasks = await pool.query(`SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney
         FROM iib_tasks 
         WHERE user_id = $1 AND pay = $2`,
         [batalyon.rows[0].id, false]
@@ -301,8 +300,8 @@ exports.getAllSpecialToExcel = asyncHandler(async (req, res, next) => {
     }
 
     // Sheetlar uchun ma'lumotlarni tayyorlash
-    const payContractsSheet = xlsx.utils.json_to_sheet(data.payContracts, {header: ["contractnumber", "taskdate", "clientname", "address", "workernumber", "allmoney", "tasktime"]});
-    const notPayContractsSheet = xlsx.utils.json_to_sheet(data.notPayContracts, {header: ["contractnumber", "taskdate", "clientname", "address", "workernumber", "allmoney", "tasktime"]});
+    const payContractsSheet = xlsx.utils.json_to_sheet(data.payContracts, {header: ["contractnumber", "taskdate", "clientname", "address", "workernumber", "allmoney"]});
+    const notPayContractsSheet = xlsx.utils.json_to_sheet(data.notPayContracts, {header: ["contractnumber", "taskdate", "clientname", "address", "workernumber", "allmoney"]});
     const batalyonNameSheet = xlsx.utils.json_to_sheet([{ "Batalyon Nomi": data.batalyonName }]);
     const summaSheet = xlsx.utils.json_to_sheet([{ "Summa": data.summa }]);
     const notPaySummaSheet = xlsx.utils.json_to_sheet([{ "Not Pay Summa": data.notPaySumma }]);
@@ -315,7 +314,6 @@ exports.getAllSpecialToExcel = asyncHandler(async (req, res, next) => {
         { width: 30 }, // address
         { width: 15 }, // workernumber
         { width: 20 }, // allmoney
-        { width: 15 }  // tasktime
     ];
 
     notPayContractsSheet['!cols'] = [
@@ -325,7 +323,6 @@ exports.getAllSpecialToExcel = asyncHandler(async (req, res, next) => {
         { width: 30 }, // address
         { width: 15 }, // workernumber
         { width: 20 }, // allmoney
-        { width: 15 }  // tasktime
     ];
 
     batalyonNameSheet['!cols'] = [{ width: 30 }];
