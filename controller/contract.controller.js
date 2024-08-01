@@ -834,6 +834,9 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
 
 
     let accountnumberResult = await pool.query(`SELECT accountnumber FROM accountnumber WHERE user_id = $1`, [req.user.id]);
+    if(!accountnumberResult.rows[0]){
+        return next(new ErrorResponse('xisob raqamini kiriting spravichnik bolimidan', 400))
+    }
     let accountnumber = accountnumberResult.rows[0].accountnumber;
 
     for (let data of datas) {
@@ -1006,10 +1009,14 @@ exports.searchByNumber = asyncHandler(async (req, res, next) => {
     }
 
     const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE contractnumber = $1 AND user_id = $2`, [contractNumber, req.user.id])
+    const resultArray = contract.rows.map(contract => {
+        contract.contractdate = returnStringDate(contract.contractdate)
+        return contract
+    })
 
     return res.status(200).json({
         success: true,
-        data: contract.rows
+        data: resultArray
     })
 })
 
@@ -1025,10 +1032,14 @@ exports.searchByClientName = asyncHandler(async (req, res, next) => {
     }
 
     const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE clientname = $1 AND user_id = $2`, [clientName.trim(), req.user.id])
+    const resultArray = contract.rows.map(contract => {
+        contract.contractdate = returnStringDate(contract.contractdate)
+        return contract
+    })
 
     return res.status(200).json({
         success: true,
-        data: contract.rows
+        data: resultArray
     })
 })
 
@@ -1044,10 +1055,14 @@ exports.searchByAddress = asyncHandler(async (req, res, next) => {
     }
 
     const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE address = $1 AND user_id = $2`, [address.trim(), req.user.id])
+    const resultArray = contract.rows.map(contract => {
+        contract.contractdate = returnStringDate(contract.contractdate)
+        return contract
+    })
 
     return res.status(200).json({
         success: true,
-        data: contract.rows
+        data: resultArray
     })
 })
 

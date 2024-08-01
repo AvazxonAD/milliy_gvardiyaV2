@@ -99,6 +99,7 @@ CREATE TABLE worker_tasks (
     command_id INTEGER REFERENCES commands(id),
     user_id INTEGER NOT NUll,
     discount double precision,
+    contractnumber double precision NOT NULL,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

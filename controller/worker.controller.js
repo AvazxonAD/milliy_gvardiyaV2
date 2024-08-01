@@ -32,7 +32,7 @@ exports.create = asyncHandler(async (req, res, next) => {
     const user = await pool.query(`SELECT user_id FROM users WHERE id = $1`, [req.user.id])
     const admin = await pool.query(`SELECT id FROM users WHERE id = $1`, [user.rows[0].user_id])
     for (let worker of workers) {
-        const fio = await pool.query(`INSERT INTO workers(fio, user_id, admin_id) VALUES($1, $2) RETURNING *
+        const fio = await pool.query(`INSERT INTO workers(fio, user_id, admin_id) VALUES($1, $2, $3) RETURNING *
             `, [`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`, req.user.id, admin.rows[0].id])
         if (!fio.rows[0]) {
             return next(new ErrorResponse("Server xatolik kiritilmadi", 400))
@@ -260,6 +260,7 @@ exports.searchWorker = asyncHandler(async (req, res, next) => {
 
     const { fio } = req.body
     let worker = null
+    console.log(fio)
     if (!req.user.adminstatus) {
         worker = await pool.query(`SELECT * FROM workers WHERE fio ILIKE '%' || $1 || '%' AND user_id = $2 `, [fio.trim(), req.user.id])
         return res.status(200).json({

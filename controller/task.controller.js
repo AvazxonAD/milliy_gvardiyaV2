@@ -28,11 +28,11 @@ exports.getAllTasks = asyncHandler(async (req, res, next) => {
     const tasks = await pool.query(`
         SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, timelimit, inProgress, done, notdone, address 
         FROM tasks 
-        WHERE user_id = $1 
-        ORDER BY contractnumber
+        WHERE user_id = $1 AND contractnumber > $4
+        ORDER BY contractnumber 
         OFFSET $2 
         LIMIT $3
-    `, [req.user.id, offset, limit]);
+    `, [req.user.id, offset, limit, 61]);
 
     // Format task dates
     const result = tasks.rows.map(task => {
@@ -139,5 +139,17 @@ exports.getTaskInfoModal = asyncHandler(async (req, res, next) => {
     return res.status(200).json({
         success: true,
         task
+    })
+})
+
+// get element by id 
+exports.getById = asyncHandler(async (req, res, next) => {
+    const task = await pool.query(`SELECT * FROM tasks WHERE id = $1 AND user_id = $2`, [req.params.id, req.user.id])
+    if(!task.rows[0]){
+        return next(new ErrorResponse('server xatolik topshiriq topilmadi', 400))
+    }
+    return res.status(200).json({
+        success: true,
+        data: task.rows[0]
     })
 })
