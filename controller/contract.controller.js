@@ -639,7 +639,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
         const battalions = [];
 
         for (const key in row) {
-            if (["81109", "81140", "84007", "89071", "98157", "98162", "Тошкент шаҳар МГ", "Toshkent Shahar IIBB"].includes(key)) {
+            if (["81109", "81140", "84007", "89071", "98157", "98162", "Тошкент шаҳар МГ", "Тошкент Шаҳар ИИББ"].includes(key)) {
                 if (row[key] !== null && row[key] !== 0) {
                     battalions.push({ name: key.trim(), workerNumber: row[key] });
                 }
@@ -813,7 +813,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
             const battalions = [];
 
             for (const key in row) {
-                if (["81109", "81140", "84007", "89071", "98157", "98162", "Тошкент шаҳар МГ", "Toshkent Shahar IIBB"].includes(key)) {
+                if (["81109", "81140", "84007", "89071", "98157", "98162", "Тошкент шаҳар МГ", "Тошкент Шаҳар ИИББ"].includes(key)) {
                     if (row[key] !== null && row[key] !== 0) {
                         battalions.push({ name: key.trim(), workerNumber: row[key] });
                     }

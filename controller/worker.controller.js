@@ -260,7 +260,6 @@ exports.searchWorker = asyncHandler(async (req, res, next) => {
 
     const { fio } = req.body
     let worker = null
-    console.log(fio)
     if (!req.user.adminstatus) {
         worker = await pool.query(`SELECT * FROM workers WHERE fio ILIKE '%' || $1 || '%' AND user_id = $2 `, [fio.trim(), req.user.id])
         return res.status(200).json({

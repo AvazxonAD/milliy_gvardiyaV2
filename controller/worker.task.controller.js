@@ -109,7 +109,7 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
 
     return res.status(200).json({
         success: true,
-        data: "Xodimlar jalb etildi"
+        data: task.id
     });
 });
 
@@ -304,3 +304,44 @@ exports.forExcelCreatePage = asyncHandler(async (req, res, next) => {
     })
 })
 
+
+exports.excelRead = asyncHandler(async (req, res, next) => {
+    function processData(data) {
+        const headerRow = data[3]; // 4th row is the third index in zero-indexed array
+        console.log('Header Row:', headerRow);
+        const namesColumnIndex = headerRow.findIndex(cell => cell === 'ФИО');
+        console.log('Names Column Index:', namesColumnIndex);
+    
+        const result = {};
+    
+        for (let i = 4; i < data.length; i++) { // Starting from 5th row which is the 4th index in zero-indexed array
+            const row = data[i];
+            console.log('Processing Row:', row);
+            const name = row[namesColumnIndex];
+    
+            if (name && name !== 'ВАКАНТ') {
+                for (let j = 0; j < row.length; j++) {
+                    if (j !== namesColumnIndex && row[j]) {
+                        const activity = headerRow[j];
+                        if (!result[activity]) {
+                            result[activity] = [];
+                        }
+                        result[activity].push({ fio: name, soat: row[j] });
+                    }
+                }
+            }
+        }
+    
+        return result;
+    }
+
+    const fileBuffer = req.file.buffer;
+    const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+    console.log('Excel Data:', data);
+
+    const processedData = processData(data);
+    res.json(processedData);
+});
