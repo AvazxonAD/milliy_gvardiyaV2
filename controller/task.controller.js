@@ -112,14 +112,18 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
 // get all task workers 
 exports.taskWorkers = asyncHandler(async (req, res, next) => {
     const workers = await pool.query(`
-        SELECT worker_name, task_id, tasktime
+        SELECT worker_name, task_id, tasktime, taskdate
         FROM worker_tasks 
         WHERE user_id = $1 AND task_id = $2
     `, [req.user.id, req.params.id]);
-
+    
+    const result = workers.rows.map(item => {
+        item.taskdate = returnStringDate(item.taskdate)
+        return item
+    })
     return res.status(200).json({
         success: true,
-        data: workers.rows
+        data: result
     });
 });
 
