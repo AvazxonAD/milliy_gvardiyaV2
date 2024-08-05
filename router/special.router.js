@@ -9,11 +9,6 @@ const {
     getIibBatalyonAndContracts,
     getAllSpecialFilterByDate,
     deleteCommands,
-    getSpecialBatalyon,
-    getSpecialData,
-    getSpecialFiterDate,
-    getFilterStatus,
-    getSpecialFilterByDateAndStatus,
     getAllSpecialToExcel
 } = require('../controller/special.result.controller')
 
@@ -23,17 +18,5 @@ router.get("/get/batalyon/and/contracts/:id", protect, getIibBatalyonAndContract
 router.post("/filter/by/date", protect, getAllSpecialFilterByDate)
 router.delete("/delete/:id", protect, deleteCommands)
 router.get('/get/data/to/excel/:id', protect, getAllSpecialToExcel)
-
-
-
-
-
-
-router.get('/get/battalions', protect, getSpecialBatalyon)
-router.get('/get/data/:id', protect, getSpecialData)
-router.post('/get/data/filter/by/date/:id', protect, getSpecialFiterDate)
-router.get('/get/data/filter/by/status/:id', protect, getFilterStatus)
-router.post("/get/data/filter/date/and/status/:id", protect, getSpecialFilterByDateAndStatus)
-
 
 module.exports = router

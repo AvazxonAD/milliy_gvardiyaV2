@@ -115,6 +115,7 @@ exports.taskWorkers = asyncHandler(async (req, res, next) => {
         SELECT worker_name, task_id, tasktime, taskdate
         FROM worker_tasks 
         WHERE user_id = $1 AND task_id = $2
+        ORDER BY createdat
     `, [req.user.id, req.params.id]);
     
     const result = workers.rows.map(item => {

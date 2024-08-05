@@ -16,24 +16,30 @@ exports.create = asyncHandler(async (req, res, next) => {
         if (!worker.lastname || !worker.firstname || !worker.fatherName) {
             return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
         }
+        const fio = `${worker.lastname.trim().toLowerCase()} ${worker.firstname.trim().toLowerCase()} ${worker.fatherName.trim().toLowerCase()}`;
 
-        const test = checkUsername(`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`)
+        const test = checkUsername(fio)
         if (!test) {
             return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz kriting", 400))
         }
 
-        const testFIO = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2
-            `, [`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`, req.user.id])
-        if (testFIO.rows[0]) {
-            return next(new ErrorResponse(`Bu fio oldin kiritilgan : ${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`,))
+        const testFIO = await pool.query(`SELECT * FROM workers 
+                WHERE user_id = $2 AND 
+                regexp_replace(lower(fio), '[^\\w\\s]', '', 'g') = regexp_replace(lower($1), '[^\\w\\s]', '', 'g')`,
+            [fio, req.user.id]
+        );
+
+        if (testFIO.rows.length > 0) {
+            return next(new ErrorResponse(`Bu fio oldin kiritilgan: ${fio}`));
         }
     }
 
     const user = await pool.query(`SELECT user_id FROM users WHERE id = $1`, [req.user.id])
     const admin = await pool.query(`SELECT id FROM users WHERE id = $1`, [user.rows[0].user_id])
     for (let worker of workers) {
+        const fioInsert = `${worker.lastname.trim().toLowerCase()} ${worker.firstname.trim().toLowerCase()} ${worker.fatherName.trim().toLowerCase()}`;
         const fio = await pool.query(`INSERT INTO workers(fio, user_id, admin_id) VALUES($1, $2, $3) RETURNING *
-            `, [`${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`, req.user.id, admin.rows[0].id])
+            `, [fioInsert, req.user.id, admin.rows[0].id])
         if (!fio.rows[0]) {
             return next(new ErrorResponse("Server xatolik kiritilmadi", 400))
         }
@@ -101,7 +107,7 @@ exports.getElementById = asyncHandler(async (req, res, next) => {
             `, [req.params.id, req.user.id])
     }
 
-    if(!worker.rows[0]){
+    if (!worker.rows[0]) {
         return next(new ErrorResponse("Xodim topilmadi", 400))
     }
 
@@ -127,24 +133,23 @@ exports.getAllBatalyon = asyncHandler(async (req, res, next) => {
 
 // update workers 
 exports.updateWorker = asyncHandler(async (req, res, next) => {
-    const {lastname, firstname, fatherName} = req.body
+    const { batalyon, lastname, firstname, fatherName } = req.body
 
     const worker = await pool.query(`SELECT fio FROM workers WHERE id = $1`, [req.params.id])
-    if(!worker.rows[0]){
+    if (!worker.rows[0]) {
         return next(new ErrorResponse("fio topilmadi server xatolik", 400))
     }
 
-    const fio = `${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`
-    
+    const fio = `${lastname.trim().toLowerCase()} ${firstname.trim().toLowerCase()} ${fatherName.trim().toLowerCase()}`;
+
     if (req.user.adminstatus) {
-        const { batalyon, lastname, firstname, fatherName } = req.body
         if (!lastname || !firstname || !fatherName, !batalyon) {
             return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
         }
-        // const test = checkUsername(`${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`)
-        // if (!test) {
-        //     return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz kriting", 400))
-        // }
+        const test = checkUsername(fio)
+        if (!test) {
+            return next(new ErrorResponse("Isim Familya Ochistva imloviy xatolarsiz kriting", 400))
+        }
 
         const batalyonId = await pool.query(`SELECT id FROM users WHERE username = $1`, [batalyon])
         if (!batalyonId.rows[0]) {
@@ -152,9 +157,11 @@ exports.updateWorker = asyncHandler(async (req, res, next) => {
         }
 
 
-        if (worker.rows[0].fio !== fio) {
-            const testFIO = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2
-                `, [fio, batalyonId.rows[0].id])
+        if (worker.rows[0].fio.toLowerCase() !== fio) {
+            const testFIO = await pool.query(`SELECT * FROM workers 
+                WHERE user_id = $2 AND 
+                regexp_replace(lower(fio), '[^\\w\\s]', '', 'g') = regexp_replace(lower($1), '[^\\w\\s]', '', 'g')
+            `, [fio, batalyonId.rows[0].id])
 
             if (testFIO.rows[0]) {
                 return next(new ErrorResponse(`Bu fio oldin kiritilgan : ${fio}`,))
@@ -175,14 +182,16 @@ exports.updateWorker = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
         }
 
-        // const test = checkUsername(`${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`)
-        // if (!test) {
-        //     return next(new ErrorResponse("Isim Familya Ochistva bosh harifda bolishi zarur", 400))
-        // }
-        
-        if (worker.rows[0].fio !== fio) {
-            const testFIO = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2
-                `, [fio, req.user.id])
+        const test = checkUsername(`${lastname.trim()} ${firstname.trim()} ${fatherName.trim()}`)
+        if (!test) {
+            return next(new ErrorResponse("Isim Familya Ochistva bosh harifda bolishi zarur", 400))
+        }
+
+        if (worker.rows[0].fio.toLowerCase() !== fio) {
+            const testFIO = await pool.query(`SELECT * FROM workers 
+                WHERE user_id = $2 AND 
+                regexp_replace(lower(fio), '[^\\w\\s]', '', 'g') = regexp_replace(lower($1), '[^\\w\\s]', '', 'g')
+            `, [fio, req.user.id])
 
             if (testFIO.rows[0]) {
                 return next(new ErrorResponse(`Bu fio oldin kiritilgan : ${fio}`,))
@@ -202,57 +211,48 @@ exports.updateWorker = asyncHandler(async (req, res, next) => {
         })
     }
 })
+
 // delete worker 
 exports.deleteWorker = asyncHandler(async (req, res, next) => {
-    if (!req.user.adminstatus) {
-        return next(new ErrorResponse("Bu amalni faqat admin bajargani maqul", 403));
+
+    const worker = await pool.query('SELECT fio FROM workers WHERE id = $1', [req.params.id]);
+    if (worker.rowCount === 0) {
+        return next(new ErrorResponse("Xodim topilmadi", 404));
     }
 
-    try {
-        // Xodimni tanlash
-        const worker = await pool.query('SELECT fio FROM workers WHERE id = $1', [req.params.id]);
-        if (worker.rowCount === 0) {
-            return next(new ErrorResponse("Xodim topilmadi", 404));
-        }
-
-        // Xodimning to‘lanmagan pullarini tekshirish
-        const notPayMoney = await pool.query(`
-            SELECT worker_tasks.taskdate, contracts.contractnumber 
-            FROM worker_tasks 
-            JOIN contracts ON worker_tasks.contract_id = contracts.id 
-            WHERE worker_tasks.worker_name = $1 AND pay = $2 AND command_id IS NULL
-        `, [worker.rows[0].fio, false]);
+    // Xodimning to‘lanmagan pullarini tekshirish
+    const notPayMoney = await pool.query(`SELECT worker_tasks.taskdate, contracts.contractnumber 
+        FROM worker_tasks
+        JOIN contracts ON worker_tasks.contract_id = contracts.id 
+        WHERE worker_tasks.worker_name = $1 AND pay = $2 AND command_id IS NULL
+    `, [worker.rows[0].fio, false]);
 
 
-        if (notPayMoney.rowCount > 0) {
-            let result = notPayMoney.rows.map(notPay => {
-                return {
-                    taskdate: returnStringDate(notPay.taskdate),
-                    contractNumber: notPay.contractnumber
-                }
-            })
-            return res.status(400).json({
-                success: false,
-                notPayMoney: result,
-                message: "Ushbu xodim hali pastdan keltrilgan xizmatlari uchun ish haqini olmadi. Buni o‘chirishda xatoliklar yuzaga kelishi mumkin."
-            });
-        }
-
-        // Xodimni o‘chirish
-        const deleteWorker = await pool.query('DELETE FROM workers WHERE id = $1 RETURNING *', [req.params.id]);
-
-        if (!deleteWorker.rows[0]) {
-            return next(new ErrorResponse("Xodim o‘chirilmadi", 500));
-        }
-
-        res.status(200).json({
-            success: true,
-            data: "Xodim o‘chirildi"
+    if (notPayMoney.rowCount > 0) {
+        let result = notPayMoney.rows.map(notPay => {
+            return {
+                taskdate: returnStringDate(notPay.taskdate),
+                contractNumber: notPay.contractnumber
+            }
+        })
+        return res.status(400).json({
+            success: false,
+            notPayMoney: result,
+            message: "Ushbu xodim hali qatnashgan ommaviy tadbir uchun ish haqini olmadi. Buni o‘chirishda xatoliklar yuzaga kelishi mumkin."
         });
-
-    } catch (error) {
-        next(error); // Umumiy xatoliklarni boshqarish
     }
+
+    // Xodimni o‘chirish
+    const deleteWorker = await pool.query('DELETE FROM workers WHERE id = $1 RETURNING *', [req.params.id]);
+
+    if (!deleteWorker.rows[0]) {
+        return next(new ErrorResponse("Xodim o‘chirilmadi", 500));
+    }
+
+    res.status(200).json({
+        success: true,
+        data: "Xodim o‘chirildi"
+    });
 });
 
 // search worker 
@@ -271,7 +271,7 @@ exports.searchWorker = asyncHandler(async (req, res, next) => {
         JOIN users ON users.id = workers.user_id
         WHERE fio ILIKE '%' || $1 || '%' AND admin_id = $2 
         `, [fio.trim(), req.user.id])
-    
+
 
     return res.status(200).json({
         success: true,
@@ -319,10 +319,10 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
     res.send(file_data);
 });
 
-// excel file data import 
+// Excel faylni import qilish
 exports.importExcel = asyncHandler(async (req, res, next) => {
     if (!req.file) {
-        return next(new ErrorResponse("file yuklanmadi", 400))
+        return next(new ErrorResponse("Fayl yuklanmadi", 400));
     }
 
     const fileBuffer = req.file.buffer;
@@ -339,20 +339,20 @@ exports.importExcel = asyncHandler(async (req, res, next) => {
 
     for (const rowData of data) {
         if (!rowData.fio) {
-            return next(new ErrorResponse(`Surovlar bo'sh qolishi mumkin emas. Excel faylni tekshiring`, 400));
+            return next(new ErrorResponse(`FIO bo'sh qolishi mumkin emas. Excel faylni tekshiring`, 400));
         }
         if (typeof rowData.fio !== "string") {
-            return next(new ErrorResponse(`Ma'lumotlar text formatida bo'lishi kerak. Xato sababchisi: ${rowData.fio.trim()}`, 400));
+            return next(new ErrorResponse(`Ma'lumotlar matn formatida bo'lishi kerak. Xato sababchisi: ${rowData.fio.trim()}`, 400));
         }
 
-        const test = checkUsername(rowData.fio.trim())
+        const test = checkUsername(rowData.fio.trim());
         if (!test) {
-            return next(new ErrorResponse(`Isim Familya Ochistva imloviy xatolarsiz kriting: ${rowData.fio}`, 400))
+            return next(new ErrorResponse(`FIO imloviy xatolarsiz kiritilishi kerak: ${rowData.fio}`, 400));
         }
     }
 
-    const user = await pool.query(`SELECT user_id FROM users WHERE id = $1`, [req.user.id])
-    const admin = await pool.query(`SELECT id FROM users WHERE id = $1`, [user.rows[0].user_id])
+    const user = await pool.query(`SELECT user_id FROM users WHERE id = $1`, [req.user.id]);
+    const admin = await pool.query(`SELECT id FROM users WHERE id = $1`, [user.rows[0].user_id]);
 
     for (const rowData of data) {
         const fio = rowData.fio.trim();
@@ -360,13 +360,19 @@ exports.importExcel = asyncHandler(async (req, res, next) => {
             continue;
         }
 
-        const fioResult = await pool.query(`SELECT * FROM workers WHERE user_id = $1 AND fio = $2`, [req.user.id, rowData.fio.trim()]);
+        const fioResult = await pool.query(`
+            SELECT * FROM workers 
+            WHERE user_id = $2 AND 
+            regexp_replace(lower(fio), '[^\\w\\s]', '', 'g') = regexp_replace(lower($1), '[^\\w\\s]', '', 'g')
+        `, [fio, req.user.id]);
+
         if (fioResult.rows[0]) {
-            continue
+            continue;
         }
 
-
-        await pool.query(`INSERT INTO workers (fio, user_id, admin_id) VALUES($1, $2, $3)`, [fio.trim(), req.user.id, admin.rows[0].id]);
+        await pool.query(`
+            INSERT INTO workers (fio, user_id, admin_id) VALUES ($1, $2, $3)
+        `, [fio, req.user.id, admin.rows[0].id]);
     }
 
     return res.status(201).json({

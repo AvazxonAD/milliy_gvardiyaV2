@@ -486,14 +486,22 @@ exports.taskOfWorker = asyncHandler(async (req, res, next) => {
 
     let workers = null
     if (req.query.task) {
-        workers = await pool.query(`SELECT worker_name FROM worker_tasks WHERE task_id  = $1`, [req.params.id])
+        workers = await pool.query(`SELECT worker_name, tasktime, taskdate FROM worker_tasks WHERE task_id  = $1`, [req.params.id])
+        workers = workers.rows.map(worker => {
+            worker.taskdate = returnStringDate(worker.taskdate)
+            return worker
+        })
     }
     if (req.query.contract) {
-        workers = await pool.query(`SELECT worker_name FROM worker_tasks WHERE contract_id = $1`, [req.params.id])
+        workers = await pool.query(`SELECT worker_name, tasktime, taskdate FROM worker_tasks WHERE contract_id = $1`, [req.params.id])
+        workers = workers.rows.map(worker => {
+            worker.taskdate = returnStringDate(worker.taskdate)
+            return worker
+        })
     }
     return res.status(200).json({
         success: true,
-        data: workers.rows
+        data: workers
     })
 })
 
@@ -605,18 +613,22 @@ exports.search = asyncHandler(async (req, res, next) => {
     if (!clientName) {
         return next(new ErrorResponse("sorov bosh qolmasligi kerak", 400))
     }
-
     let contractQuery = await pool.query(
         `SELECT clientname, clientaddress, clientmfo, clientaccount, clientstr, treasuryaccount, address, timelimit
-        FROM contracts WHERE clientname = $1 AND user_id = $2
+        FROM contracts
+        WHERE clientname ILIKE '%' || $1 || '%' AND user_id = $2
         ORDER BY createdat DESC`,
-        [clientName.trim(), req.user.id]
-    );
+    [clientName.trim(), req.user.id]);
+
+    if (contractQuery.rows.length === 0) {
+        return next(new ErrorResponse("Mos keladigan natijalar topilmadi", 404));
+    }
 
     return res.status(200).json({
         success: true,
-        data: contractQuery.rows[0],
+        data: contractQuery.rows,
     });
+
 })
 
 // import excel data 
@@ -1008,7 +1020,11 @@ exports.searchByNumber = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
     }
 
-    const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE contractnumber = $1 AND user_id = $2`, [contractNumber, req.user.id])
+    const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address 
+        FROM contracts 
+        WHERE contractnumber = $1 AND user_id = $2
+    `, [contractNumber, req.user.id])
+    
     const resultArray = contract.rows.map(contract => {
         contract.contractdate = returnStringDate(contract.contractdate)
         return contract
@@ -1030,8 +1046,10 @@ exports.searchByClientName = asyncHandler(async (req, res, next) => {
     if (!clientName) {
         return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
     }
-
-    const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE clientname = $1 AND user_id = $2`, [clientName.trim(), req.user.id])
+    const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts 
+        WHERE clientname ILIKE '%' || $1 || '%' AND user_id = $2
+    `, [clientName.trim(), req.user.id])
+    
     const resultArray = contract.rows.map(contract => {
         contract.contractdate = returnStringDate(contract.contractdate)
         return contract
@@ -1054,7 +1072,11 @@ exports.searchByAddress = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("sorovlar bosh qolishi mumkin emas", 400))
     }
 
-    const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address FROM contracts WHERE address = $1 AND user_id = $2`, [address.trim(), req.user.id])
+    const contract = await pool.query(`SELECT id, contractnumber, contractdate, clientname, address 
+        FROM contracts 
+        WHERE address ILIKE '%' || $1 || '%' AND user_id = $2
+    `, [address.trim(), req.user.id])
+    
     const resultArray = contract.rows.map(contract => {
         contract.contractdate = returnStringDate(contract.contractdate)
         return contract

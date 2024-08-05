@@ -6,7 +6,6 @@ const xlsx = require('xlsx')
 const {
     returnDate,
     returnStringDate,
-    returnLocalDate
 } = require('../utils/date.function')
 
 const {
@@ -14,7 +13,7 @@ const {
     sumMoney
 } = require('../utils/worker.tasks.function')
 
-// push worker
+// push worker 
 exports.pushWorker = asyncHandler(async (req, res, next) => {
     const { workers } = req.body;
 
@@ -28,44 +27,45 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse('Bu topshiriq vaqtida bajarilmagan yoki allaqachon bajarilgan', 400));
     }
 
-    for(let worker of workers){
-        if(typeof worker.tasktime !== "number" || worker.tasktime < 1){
-            return next(new ErrorResponse("ommaviy tadbir vaqtini tog'ri kiriting", 400))
+    for (let worker of workers) {
+        if (typeof worker.tasktime !== "number" || worker.tasktime < 1) {
+            return next(new ErrorResponse("ommaviy tadbir vaqtini tog'ri kiriting", 400));
         }
-        if(task.timelimit){
-            if(worker.tasktime !== task.timelimit){
-                return next(new ErrorResponse(`Bu xodim ${worker.fio} uchun notogri vaqt kiritdinggiz : ${worker.tasktime}. OMMAVIY TADBIR OTKIZALIDAN VAQT  : ${task.timelimit}`, 400))   
+        if (task.timelimit) {
+            if (worker.tasktime !== task.timelimit) {
+                return next(new ErrorResponse(`Bu xodim ${worker.fio} uchun notogri vaqt kiritdinggiz : ${worker.tasktime}. OMMAVIY TADBIR OTKIZALIDAN VAQT  : ${task.timelimit}`, 400));
             }
         }
-        const date = returnDate(worker.taskdate)
-        if(!date){
-        return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
+        const date = returnDate(worker.taskdate);
+        if (!date) {
+            return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400));
         }
-        const testFor = new Date(task.taskdate)
-        testFor.setDate(testFor.getDate() + 1)
-        if(date > testFor){
-            return next(new ErrorResponse(`Bu ${worker.fio} xodim uchun topshiriq sanasini notog'ri kiritdinggiz : ${returnStringDate(date)}`, 400))
+        const testFor = new Date(task.taskdate);
+        testFor.setDate(testFor.getDate() + 1);
+        if (date > testFor) {
+            return next(new ErrorResponse(`Bu ${worker.fio} xodim uchun topshiriq sanasini notog'ri kiritdinggiz : ${returnStringDate(date)}`, 400));
         }
     }
 
-    let testTime = 0
-    for(let worker of workers){
-        testTime += worker.tasktime
+    let testTime = 0;
+    for (let worker of workers) {
+        testTime += worker.tasktime;
     }
 
-    let remainingTime = await pool.query(`SELECT SUM(tasktime) AS tasktime FROM worker_tasks WHERE task_id = $1`, [task.id])
-    const time = ((task.tasktime * task.workernumber) - remainingTime.rows[0].tasktime)
-    if(testTime > time){
-        return next(new ErrorResponse(`Ushbu topshiriq uchun kiritiladigan vaqtning qoldig'i ${time}`, 400))
+    let remainingTimeResult = await pool.query(`SELECT ROUND(SUM(tasktime)::numeric, 2) AS tasktime FROM worker_tasks WHERE task_id = $1`, [task.id]);
+    let remainingTime = parseFloat(remainingTimeResult.rows[0].tasktime) || 0;
+    const time = parseFloat(((task.tasktime * task.workernumber) - remainingTime).toFixed(2));
+    if (testTime > time) {
+        return next(new ErrorResponse(`Ushbu topshiriq uchun kiritiladigan vaqtning qoldig'i ${time}`, 400));
     }
 
-    for(let worker of workers){
-        if(!worker.fio){
-            return next(new ErrorResponse("Fio topilmadi", 500))
+    for (let worker of workers) {
+        if (!worker.fio) {
+            return next(new ErrorResponse("Fio topilmadi", 500));
         }
-        const fio = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2`, [worker.fio, req.user.id])
-        if(!fio.rows[0]){
-            return next(new ErrorResponse("Fio topilmadi", 500))
+        const fio = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2`, [worker.fio, req.user.id]);
+        if (!fio.rows[0]) {
+            return next(new ErrorResponse("Fio topilmadi", 500));
         }
     }
 
@@ -76,8 +76,8 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
     const contract = contractResult.rows[0];
 
     for (let worker of workers) {
-        const summa = sumMoney(task.discount, task.timemoney, worker.tasktime)
-        date = returnDate(worker.taskdate)
+        const summa = sumMoney(task.discount, task.timemoney, worker.tasktime);
+        const date = returnDate(worker.taskdate);
         await pool.query(
             `INSERT INTO worker_tasks (contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_name, user_id, discount, contractnumber)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
@@ -98,9 +98,11 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
             ]
         );
     }
-    remainingTime = await pool.query(`SELECT SUM(tasktime) AS tasktime FROM worker_tasks WHERE task_id = $1`, [task.id])
-    const resultTime = ((task.tasktime * task.workernumber) - remainingTime.rows[0].tasktime)
-    if( resultTime === 0){
+
+    remainingTimeResult = await pool.query(`SELECT ROUND(SUM(tasktime)::numeric, 2) AS tasktime FROM worker_tasks WHERE task_id = $1`, [task.id]);
+    remainingTime = parseFloat(remainingTimeResult.rows[0].tasktime) || 0;
+    const resultTime = parseFloat(((task.tasktime * task.workernumber) - remainingTime).toFixed(2));
+    if (resultTime === 0) {
         await pool.query(
             `UPDATE tasks SET inprogress = $1, done = $2, notdone = $3 WHERE id = $4`,
             [false, true, false, req.params.id]
@@ -112,6 +114,8 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
         data: task.id
     });
 });
+
+
 
 // get all tasks of worker 
 exports.getAlltasksOfWorker = asyncHandler(async (req, res, next) => {
@@ -166,182 +170,3 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
     })
 
 })
-
-// excel create 
-exports.excelCreate = asyncHandler(async (req, res, next) => {
-    let resultArray = [];
-
-    // SQL so'rovi orqali ma'lumotlarni olish
-    const workerNames = await pool.query(`
-        SELECT worker_name
-        FROM (
-            SELECT worker_name, SUM(summa) AS total_sum
-            FROM worker_tasks
-            GROUP BY worker_name
-        ) AS worker_sums
-        ORDER BY total_sum ASC;
-    `);
-
-    // Har bir ishchi uchun ma'lumotlarni to'plash
-    for (let worker of workerNames.rows) {
-        const paySumma = await pool.query(`
-            SELECT SUM(summa) FROM worker_tasks WHERE worker_name = $1 AND pay = $2
-        `, [worker.worker_name, true]);
-
-        const noyPaySumma = await pool.query(`
-            SELECT SUM(summa) FROM worker_tasks WHERE worker_name = $1 AND pay = $2
-        `, [worker.worker_name, false]);
-
-        const summa = await pool.query(`
-            SELECT SUM(summa) FROM worker_tasks WHERE worker_name = $1
-        `, [worker.worker_name]);
-
-        // Ma'lumotlarni resultArray ga qo'shish
-        resultArray.push({
-            Xodim: worker.worker_name,
-            Tolangan_summa: paySumma.rows[0].sum ? Math.round((paySumma.rows[0].sum * 0.25) * 100) / 100 : 0,
-            Tolanmagan_summa: noyPaySumma.rows[0].sum ? Math.round((noyPaySumma.rows[0].sum * 0.25) * 100) / 100 : 0,
-            Umumiy_summa: summa.rows[0].sum ? Math.round((summa.rows[0].sum * 0.25) * 100) / 100 : 0
-        });
-    }
-
-    // Excel faylni yaratish
-    const worksheetData = [];
-
-    // Ma'lumotlar qismi
-    resultArray.forEach(data => {
-        worksheetData.push({
-            'Xodim': data.Xodim,
-            'Tolangan_summa': data.Tolangan_summa.toString(), // toString() ishlatilishi mumkin
-            'Tolanmagan_summa': data.Tolanmagan_summa.toString(),
-            'Umumiy_summa': data.Umumiy_summa.toString()
-        });
-    });
-
-    const worksheet = xlsx.utils.json_to_sheet(worksheetData);
-
-    // Ustunlar kengligini sozlash
-    worksheet['!cols'] = [
-        { width: 80 }, // Xodim
-        { width: 40 }, // Tolangan_summa
-        { width: 40 }, // Tolanmagan_summa
-        { width: 40 }  // Umumiy_summa
-    ];
-
-    // Workbook yaratish
-    const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, worksheet, 'Xodimlar'); // 'Xodimlar' nomli sahifani qo'shish
-
-    // Fayl nomini generatsiya qilish
-    const filename = `${Date.now()}_data.xlsx`;
-
-    const buffer = xlsx.write(workbook, { type: 'buffer' });
-
-    // Faylni ma'lumotlar bazasiga saqlash
-    await pool.query(`
-        INSERT INTO files (filename, file_data)
-        VALUES ($1, $2)
-    `, [filename, buffer]);
-
-    const fileResult = await pool.query(`
-        SELECT filename, file_data
-        FROM files
-        WHERE filename = $1
-    `, [filename]);
-
-    if (fileResult.rows.length === 0) {
-        return res.status(404).json({ message: 'Fayl topilmadi' });
-    }
-
-    // Faylni yuklab olish
-    const { file_data } = fileResult.rows[0];
-    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.send(file_data);
-
-});
-
-//for  excel create page 
-exports.forExcelCreatePage = asyncHandler(async (req, res, next) => {
-    let resultArray = [];
-
-    // SQL so'rovi orqali ma'lumotlarni olish
-    const workerNames = await pool.query(`
-        SELECT worker_name
-        FROM (
-            SELECT worker_name, SUM(summa) AS total_sum
-            FROM worker_tasks
-            GROUP BY worker_name
-        ) AS worker_sums
-        ORDER BY total_sum ASC;
-    `);
-
-    // Har bir ishchi uchun ma'lumotlarni to'plash
-    for (let worker of workerNames.rows) {
-        const paySumma = await pool.query(`
-            SELECT SUM(summa) FROM worker_tasks WHERE worker_name = $1 AND pay = $2
-        `, [worker.worker_name, true]);
-
-        const noyPaySumma = await pool.query(`
-            SELECT SUM(summa) FROM worker_tasks WHERE worker_name = $1 AND pay = $2
-        `, [worker.worker_name, false]);
-
-        const summa = await pool.query(`
-            SELECT SUM(summa) FROM worker_tasks WHERE worker_name = $1
-        `, [worker.worker_name]);
-
-        // Ma'lumotlarni resultArray ga qo'shish
-        resultArray.push({
-            Xodim: worker.worker_name,
-            Tolangan_summa: paySumma.rows[0].sum !== null ? paySumma.rows[0].sum : 0,
-            Tolanmagan_summa: noyPaySumma.rows[0].sum !== null ? noyPaySumma.rows[0].sum : 0,
-            Umumiy_summa: summa.rows[0].sum !== null ? summa.rows[0].sum : 0
-        });
-    }
-    return res.status(200).json({
-        success: true,
-        data: resultArray
-    })
-})
-
-
-exports.excelRead = asyncHandler(async (req, res, next) => {
-    function processData(data) {
-        const headerRow = data[3]; // 4th row is the third index in zero-indexed array
-        console.log('Header Row:', headerRow);
-        const namesColumnIndex = headerRow.findIndex(cell => cell === 'ФИО');
-        console.log('Names Column Index:', namesColumnIndex);
-    
-        const result = {};
-    
-        for (let i = 4; i < data.length; i++) { // Starting from 5th row which is the 4th index in zero-indexed array
-            const row = data[i];
-            console.log('Processing Row:', row);
-            const name = row[namesColumnIndex];
-    
-            if (name && name !== 'ВАКАНТ') {
-                for (let j = 0; j < row.length; j++) {
-                    if (j !== namesColumnIndex && row[j]) {
-                        const activity = headerRow[j];
-                        if (!result[activity]) {
-                            result[activity] = [];
-                        }
-                        result[activity].push({ fio: name, soat: row[j] });
-                    }
-                }
-            }
-        }
-    
-        return result;
-    }
-
-    const fileBuffer = req.file.buffer;
-    const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
-    console.log('Excel Data:', data);
-
-    const processedData = processData(data);
-    res.json(processedData);
-});
