@@ -93,7 +93,7 @@ CREATE TABLE worker_tasks (
     summa double precision NOT NULL,
     taskdate DATE NOT NULL,
     clientname VARCHAR(200) NOT NULL,
-    isPay BOOLEAN DEFAULT false,
+    ispay BOOLEAN DEFAULT false,
     address VARCHAR(400) NOT NULL,
     pay BOOLEAN DEFAULT false,
     command_id INTEGER REFERENCES commands(id),

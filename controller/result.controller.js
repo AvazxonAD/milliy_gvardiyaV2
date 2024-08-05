@@ -26,13 +26,14 @@ exports.resultCreate = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
     }
 
-    const battalions = await pool.query(`SELECT * FROM users WHERE user_id = $1 AND status = $2`, [req.user.id, false])
+    const battalions = await pool.query(`SELECT id FROM users WHERE user_id = $1 AND status = $2`, [req.user.id, false])
     let test = 0
     for(let battalion of battalions.rows){
         const worker_tasks = await pool.query(`SELECT * FROM worker_tasks WHERE ispay = $1 AND pay = $2 AND taskdate < $3 AND user_id = $4
             `,[true, false, date2, battalion.id])
         test+= worker_tasks.rows.length
     }
+
     if(test === 0){
         return next(new ErrorResponse('ushbu muddat ichida hech bir batalyon ommaviy tadbirda ishtirok etmadi yoki hali buyurtmachilar tomonidan pul otkazilmadi', 400))
     }
@@ -40,11 +41,13 @@ exports.resultCreate = asyncHandler(async (req, res, next) => {
     const command = await pool.query(`INSERT INTO commands (date1, date2, commanddate, commandnumber) VALUES($1, $2, $3, $4) RETURNING *
         `, [date1, date2, commandDate, commandNumber])
     
-    await pool.query(`
-        UPDATE worker_tasks  
-        SET command_id = $1, pay = $2
-        WHERE ispay = $3 AND pay = $4 AND taskdate < $5
-    `, [command.rows[0].id, true, true, false, date2]);
+    for(let battalion of battalions.rows){
+        await pool.query(`
+            UPDATE worker_tasks  
+            SET command_id = $1, pay = $2
+            WHERE ispay = $3 AND pay = $4 AND taskdate < $5 AND user_id = $6
+        `, [command.rows[0].id, true, true, false, date2, battalion.id]);
+    }
 
     return res.status(200).json({
         success: true,
