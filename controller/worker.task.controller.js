@@ -78,9 +78,10 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
     for (let worker of workers) {
         const summa = sumMoney(task.discount, task.timemoney, worker.tasktime);
         const date = returnDate(worker.taskdate);
+        const fio = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2`, [worker.fio, req.user.id]);
         await pool.query(
-            `INSERT INTO worker_tasks (contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_name, user_id, discount, contractnumber)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+            `INSERT INTO worker_tasks (contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_name, user_id, discount, contractnumber, worker_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
             [
                 task.contract_id,
                 worker.tasktime,
@@ -94,7 +95,8 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
                 worker.fio,
                 req.user.id,
                 task.discount,
-                contract.contractnumber
+                contract.contractnumber, 
+                fio.rows[0].id
             ]
         );
     }

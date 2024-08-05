@@ -100,6 +100,7 @@ CREATE TABLE worker_tasks (
     user_id INTEGER NOT NUll,
     discount double precision,
     contractnumber double precision NOT NULL,
+    worker_id INTEGER,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -131,13 +132,6 @@ CREATE TABLE accountNumber(
     accountnumber VARCHAR(50) NOT NULL,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     user_id INTEGER
-);
-
-CREATE TABLE files (
-    id BIGSERIAL PRIMARY KEY,
-    filename VARCHAR(255) NOT NULL,
-    file_data BYTEA NOT NULL,
-    createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE executors (
@@ -174,4 +168,23 @@ CREATE TABLE strs (
     id BIGSERIAL PRIMARY KEY,
     str VARCHAR(100) NOT NULL,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE filetasks (
+    id BIGSERIAL PRIMARY KEY,
+    done BOOLEAN DEFAULT false,
+    user_id INTEGER,
+    admin_id INTEGER,
+    admin_file_id INTEGER,
+    user_file_id INTEGER,
+    taskInfo VARCHAR(500),
+    taskDate DATE NOT NULL,
+    foruserinfo VARCHAR(500)
+);
+
+CREATE TABLE files (
+    id BIGSERIAL PRIMARY KEY,
+    filename VARCHAR(255) NOT NULL,
+    file_data BYTEA NOT NULL,
+    createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );

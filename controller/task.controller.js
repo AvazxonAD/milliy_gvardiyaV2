@@ -129,7 +129,7 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
 // get all task workers 
 exports.taskWorkers = asyncHandler(async (req, res, next) => {
     const workers = await pool.query(`
-        SELECT worker_name, tasktime, taskdate, id
+        SELECT worker_name, tasktime, taskdate, id, task_id
         FROM worker_tasks 
         WHERE user_id = $1 AND task_id = $2
         ORDER BY createdat
@@ -154,9 +154,9 @@ exports.deleteWorker = asyncHandler(async (req, res, next) => {
     }
 
     if(worker_task.rows[0]){
-        const task = await pool.query(`SELECT * FROM tasks WHERE id = $1`, [req.params.id])
+        const task = await pool.query(`SELECT * FROM tasks WHERE id = $1`, [req.query.task_id])
         if(task.rows[0].done){
-            await pool.query(`UPDATE tasks SET done = $1, notdone = $2, inprogress = $3 WHERE id = $4`, [false, false, true, req.params.id])
+            await pool.query(`UPDATE tasks SET done = $1, notdone = $2, inprogress = $3 WHERE id = $4`, [false, false, true, req.query.task_id])
  
         }
 
