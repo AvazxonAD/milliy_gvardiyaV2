@@ -12,10 +12,10 @@ const {
     checkBattailonsIsNull,
     returnWorkerNumberAndAllMoney,
     returnBattalion,
-    blockTasks,
     checkDateWithNowDate,
     checkBattalionName
 } = require('../utils/contract.functions');
+const { blockTask } = require('../utils/worker.tasks.function')
 const pool = require("../config/db");
 
 // create contract
@@ -404,6 +404,16 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
         [contractId]
     );
 
+    /*for(let task of tasksQuery.rows){
+        let tests = blockTask(task)
+        for (let test of tests) {
+            await pool.query(`UPDATE tasks 
+                SET notdone = $1, done = $2, inprogress = $3
+                WHERE id = $4
+            `, [true, false, false, test.id])
+        }
+    }*/
+
     let iibTasksQuery = await pool.query(
         `SELECT id, battalionname, taskdate, workernumber 
         FROM iib_tasks 
@@ -486,14 +496,14 @@ exports.taskOfWorker = asyncHandler(async (req, res, next) => {
 
     let workers = null
     if (req.query.task) {
-        workers = await pool.query(`SELECT worker_name, tasktime, taskdate FROM worker_tasks WHERE task_id  = $1`, [req.params.id])
+        workers = await pool.query(`SELECT worker_name, tasktime, taskdate, id FROM worker_tasks WHERE task_id  = $1`, [req.params.id])
         workers = workers.rows.map(worker => {
             worker.taskdate = returnStringDate(worker.taskdate)
             return worker
         })
     }
     if (req.query.contract) {
-        workers = await pool.query(`SELECT worker_name, tasktime, taskdate FROM worker_tasks WHERE contract_id = $1`, [req.params.id])
+        workers = await pool.query(`SELECT worker_name, tasktime, taskdate, id FROM worker_tasks WHERE contract_id = $1`, [req.params.id])
         workers = workers.rows.map(worker => {
             worker.taskdate = returnStringDate(worker.taskdate)
             return worker

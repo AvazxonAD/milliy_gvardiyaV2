@@ -8,7 +8,7 @@ const {
     returnLocalDate
 } = require('../utils/date.function')
 
-//const { blockTask } = require('../utils/worker.tasks.function')
+const { blockTask } = require('../utils/worker.tasks.function')
 
 // get all tasks 
 exports.getAllTasks = asyncHandler(async (req, res, next) => {
@@ -16,12 +16,12 @@ exports.getAllTasks = asyncHandler(async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const offset = (page - 1) * limit;
     
-    /*let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE battalionname = $1 `, [req.user.username])
-    let tests = blockTask(taskTest.rows)
-    for (let test of tests) {
-        await pool.query(`UPDATE tasks 
-            SET notdone = $1, done = $2, inprogress = $3
-            WHERE id = $4
+    /*let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE user_id = $1 `, [req.user.id])
+        let tests = blockTask(taskTest.rows)
+        for (let test of tests) {
+            await pool.query(`UPDATE tasks 
+                SET notdone = $1, done = $2, inprogress = $3
+                WHERE id = $4
             `, [true, false, false, test.id])
     }*/
 
@@ -63,6 +63,15 @@ exports.filterByStatus = asyncHandler(async (req, res, next) => {
                         req.query.done ? 'done = TRUE' :
                         req.query.notDone ? 'notdone = TRUE' : '1=1'; // Default to 1=1 if no query
 
+    /*let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE user_id = $1 `, [req.user.id])
+        let tests = blockTask(taskTest.rows)
+        for (let test of tests) {
+            await pool.query(`UPDATE tasks 
+                SET notdone = $1, done = $2, inprogress = $3
+                WHERE id = $4
+                `, [true, false, false, test.id])
+    }*/
+
     const tasks = await pool.query(`
         SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, timelimit, inProgress, done, notdone, address 
         FROM tasks 
@@ -90,7 +99,15 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
     if (!date1 || !date2) {
         return next(new ErrorResponse("Sana formati noto'g'ri kiritilgan. To'g'ri format: kun.oy.yil. Masalan: 12.12.2024", 400));
     }
-
+    /*let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE user_id = $1 `, [req.user.id])
+        let tests = blockTask(taskTest.rows)
+        for (let test of tests) {
+            await pool.query(`UPDATE tasks 
+                SET notdone = $1, done = $2, inprogress = $3
+                WHERE id = $4
+                `, [true, false, false, test.id])
+    }*/
+   
     const tasks = await pool.query(`
         SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, timelimit, inProgress, done, notdone, address
         FROM tasks
@@ -112,7 +129,7 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
 // get all task workers 
 exports.taskWorkers = asyncHandler(async (req, res, next) => {
     const workers = await pool.query(`
-        SELECT worker_name, task_id, tasktime, taskdate
+        SELECT worker_name, tasktime, taskdate, id
         FROM worker_tasks 
         WHERE user_id = $1 AND task_id = $2
         ORDER BY createdat
@@ -130,8 +147,7 @@ exports.taskWorkers = asyncHandler(async (req, res, next) => {
 
 // delete worker 
 exports.deleteWorker = asyncHandler(async (req, res, next) => {
-    const {worker_name} = req.body
-    const worker_task = await pool.query(`DELETE FROM worker_tasks WHERE task_id = $1 AND worker_name = $2 AND pay = $3 RETURNING id `, [req.params.id, worker_name, false])
+    const worker_task = await pool.query(`DELETE FROM worker_tasks WHERE id = $1 AND pay = $2 RETURNING id `, [req.params.id, false])
     
     if(!worker_task.rows[0]){
         return next(new ErrorResponse(`${worker_name} uchun xizmat puli tolab bolingan endi ushbu amalni bajara olmaysiz`, 400))
@@ -144,7 +160,7 @@ exports.deleteWorker = asyncHandler(async (req, res, next) => {
  
         }
 
-        /*let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE battalionname = $1 `, [req.user.username])
+        /*let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE user_id = $1 `, [req.user.id])
         let tests = blockTask(taskTest.rows)
         for (let test of tests) {
             await pool.query(`UPDATE tasks 

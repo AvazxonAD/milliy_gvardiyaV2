@@ -68,24 +68,6 @@ exports.returnBattalion = (oneTimeMoney, battalions, discount, taskTime) => {
     return result;
 }
 
-// block tasks 
-exports.blockTasks = (tasks) => {
-    result = []
-    for(let task of tasks){
-        if(task.inprogress){
-            const dateObject = new Date(task.taskdate)
-            dateObject.setDate(dateObject.getDate() + 2);
-            if(dateObject.getTime() < new Date().getTime()){
-                result.push({
-                    id: task.id, 
-                    notdone: true
-                })
-            }
-        }
-    }
-    return result
-}
-
 // check date with now date
 exports.checkDateWithNowDate = (date) => {
     const inputDate = new Date(date);
