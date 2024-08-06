@@ -79,6 +79,7 @@ CREATE TABLE tasks (
     discount double precision,
     timelimit VARCHAR(500) NOT NULL,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    ispay BOOLEAN,
     user_id INTEGER
 );
 
