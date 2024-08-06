@@ -132,7 +132,7 @@ exports.taskWorkers = asyncHandler(async (req, res, next) => {
         SELECT worker_name, tasktime, taskdate, id, task_id
         FROM worker_tasks 
         WHERE user_id = $1 AND task_id = $2
-        ORDER BY createdat
+        ORDER BY taskdate
     `, [req.user.id, req.params.id]);
     
     const result = workers.rows.map(item => {
@@ -202,7 +202,7 @@ exports.getTaskInfoModal = asyncHandler(async (req, res, next) => {
 
 // get element by id 
 exports.getById = asyncHandler(async (req, res, next) => {
-    const rows = await pool.query(`SELECT clientname, contractnumber, taskdate, done, inprogress, notdone, workernumber FROM tasks WHERE id = $1 AND user_id = $2`, [req.params.id, req.user.id])
+    const rows = await pool.query(`SELECT * FROM tasks WHERE id = $1 AND user_id = $2`, [req.params.id, req.user.id])
     if(!rows.rows[0]){
         return next(new ErrorResponse('server xatolik topshiriq topilmadi', 400))
     }
