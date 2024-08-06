@@ -26,7 +26,7 @@ exports.getAllTasks = asyncHandler(async (req, res, next) => {
     }*/
 
     const tasks = await pool.query(`
-        SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, timelimit, inProgress, done, notdone, address 
+        SELECT id, contractnumber, clientname, taskdate, inProgress, done, notdone 
         FROM tasks 
         WHERE user_id = $1
         ORDER BY contractnumber 
@@ -73,7 +73,7 @@ exports.filterByStatus = asyncHandler(async (req, res, next) => {
     }*/
 
     const tasks = await pool.query(`
-        SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, timelimit, inProgress, done, notdone, address 
+        SELECT id, contractnumber, clientname, taskdate, inProgress, done, notdone 
         FROM tasks 
         WHERE user_id = $1 AND ${statusQuery} 
         ORDER BY contractnumber 
@@ -109,7 +109,7 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
     }*/
    
     const tasks = await pool.query(`
-        SELECT id, contractnumber, clientname, workernumber, taskdate, tasktime, timelimit, inProgress, done, notdone, address
+        SELECT id, contractnumber, clientname, taskdate, inProgress, done, notdone
         FROM tasks
         WHERE user_id = $1 AND taskdate BETWEEN $2 AND $3
         ORDER BY contractnumber
@@ -179,19 +179,24 @@ exports.deleteWorker = asyncHandler(async (req, res, next) => {
 // task info modal 
 exports.getTaskInfoModal = asyncHandler(async (req, res, next) => {
     const  rows = await pool.query(`SELECT * FROM tasks WHERE id = $1`, [req.params.id])
-    const task = rows.rows.map(item => {
-        item.taskdate = returnLocalDate(item.taskdate)
-        return item
-    })
-    
-    if(!task){
+    if(!rows.rows[0]){
         return next(new ErrorResponse('server xatolik', 400))
     }
 
+    const task = rows.rows[0]
+    
+    data = {
+        batalon: `Батальон - ${task.battalionname}`,
+        contractnumber: `Шартнома рақами - ${task.contractnumber}`,
+        clientname: `Буюртмачи номи - ${task.clientname}`,
+        timelimit: `Тадбир отадиган кунёки кунлар - ${task.timelimit}`,
+        workernumber: `Ходимлар сони - ${task.workernumber}`,
+        tasktime: `Битта ходим учун умумий топшириқ вақти - ${task.tasktime}`
+    }
 
     return res.status(200).json({
         success: true,
-        task
+        data
     })
 })
 

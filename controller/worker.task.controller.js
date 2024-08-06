@@ -31,11 +31,6 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
         if (typeof worker.tasktime !== "number" || worker.tasktime < 1) {
             return next(new ErrorResponse("ommaviy tadbir vaqtini tog'ri kiriting", 400));
         }
-        if (task.timelimit) {
-            if (worker.tasktime !== task.timelimit) {
-                return next(new ErrorResponse(`Bu xodim ${worker.fio} uchun notogri vaqt kiritdinggiz : ${worker.tasktime}. OMMAVIY TADBIR OTKIZALIDAN VAQT  : ${task.timelimit}`, 400));
-            }
-        }
         const date = returnDate(worker.taskdate);
         if (!date) {
             return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400));

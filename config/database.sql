@@ -55,7 +55,6 @@ CREATE TABLE contracts (
     tasktime double precision NOT NULL,
     taskdate DATE NOT NULL,
     accountnumber VARCHAR(40) NOT NULL,
-    tasktimelimit double precision,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     user_id INTEGER
 );
@@ -78,7 +77,7 @@ CREATE TABLE tasks (
     notDone BOOLEAN DEFAULT false,
     address VARCHAR(500) NOT NULL,
     discount double precision,
-    timelimit double precision,
+    timelimit VARCHAR(500) NOT NULL,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     user_id INTEGER
 );
@@ -122,7 +121,7 @@ CREATE TABLE iib_tasks (
     command_id INTEGER REFERENCES commands(id),
     address VARCHAR(500) NOT NULL,
     discount double precision,
-    timelimit double precision,
+    timelimit VARCHAR(500) NOT NULL,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     user_id INTEGER
 );
@@ -168,18 +167,6 @@ CREATE TABLE strs (
     id BIGSERIAL PRIMARY KEY,
     str VARCHAR(100) NOT NULL,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE TABLE filetasks (
-    id BIGSERIAL PRIMARY KEY,
-    done BOOLEAN DEFAULT false,
-    user_id INTEGER,
-    admin_id INTEGER,
-    admin_file_id INTEGER,
-    user_file_id INTEGER,
-    taskInfo VARCHAR(500),
-    taskDate DATE NOT NULL,
-    foruserinfo VARCHAR(500)
 );
 
 CREATE TABLE files (

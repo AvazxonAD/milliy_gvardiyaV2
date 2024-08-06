@@ -67,7 +67,7 @@ exports.getAllCommand = asyncHandler(async (req, res, next) => {
 
     // SQL so'rovi orqali barcha kerakli ma'lumotlarni olish
     const commandsQuery = `
-        SELECT id, commandnumber, commanddate
+        SELECT id, commandnumber, commanddate, date1, date2
         FROM commands
         WHERE status = $1
         ORDER BY commanddate DESC
@@ -77,6 +77,8 @@ exports.getAllCommand = asyncHandler(async (req, res, next) => {
 
     const result = commands.rows.map(command => {
         command.commanddate = returnStringDate(command.commanddate);
+        command.date1 = returnStringDate(command.date1)
+        command.date2 = returnStringDate(command.date2)
         return command;
     });
 
@@ -147,17 +149,19 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
 
     // Ma'lumotlarni olish uchun SQL so'rovi
     const commands = await pool.query(
-        `SELECT id, commandnumber, commanddate
+        `SELECT id, commandnumber, commanddate, date1, date2
          FROM commands
          WHERE status = $1 AND commanddate BETWEEN $2 AND $3 AND user_id = $4`,
         [false, date1, date2, req.user.id]
     );
 
     // Natijalarni formatlash
-    const result = commands.rows.map(command => ({
-        ...command,
-        commanddate: returnStringDate(command.commanddate)
-    }));
+    const result = commands.rows.map(command => {
+        command.commanddate = returnStringDate(command.commanddate);
+        command.date1 = returnStringDate(command.date1)
+        command.date2 = returnStringDate(command.date2)
+        return command;
+    });
 
     return res.status(200).json({
         success: true,

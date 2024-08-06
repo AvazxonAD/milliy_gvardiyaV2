@@ -61,11 +61,13 @@ exports.getAllSpecial = asyncHandler(async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10
     const page = parseInt(req.query.page) || 1
 
-    const commands = await pool.query(`SELECT id, commandnumber, commanddate FROM commands WHERE status = $1 AND user_id = $2 OFFSET $3 LIMIT $4 `, [true, req.user.id, (page - 1) * limit, limit])
-    let result = commands.rows.map(command => {
-        command.commanddate = returnStringDate(command.commanddate)
-        return command
-    })
+    const commands = await pool.query(`SELECT id, commandnumber, commanddate, date1, date2 FROM commands WHERE status = $1 AND user_id = $2 OFFSET $3 LIMIT $4 `, [true, req.user.id, (page - 1) * limit, limit])
+    const result = commands.rows.map(command => {
+        command.commanddate = returnStringDate(command.commanddate);
+        command.date1 = returnStringDate(command.date1)
+        command.date2 = returnStringDate(command.date2)
+        return command;
+    });
 
     const total = await pool.query(`SELECT COUNT(id) AS total FROM commands WHERE status = $1 AND user_id = $2`, [true, req.user.id])
 
@@ -337,12 +339,15 @@ exports.getAllSpecialFilterByDate = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400))
     }
 
-    const commands = await pool.query(`SELECT id, commandnumber, commanddate FROM commands WHERE status = $1 AND commanddate BETWEEN $2 AND $3 AND user_id = $4
+    const commands = await pool.query(`SELECT id, commandnumber, commanddate, date1, date2 FROM commands WHERE status = $1 AND commanddate BETWEEN $2 AND $3 AND user_id = $4
         `, [true, date1, date2, req.user.id])
-    let result = commands.rows.map(command => {
-        command.commanddate = returnStringDate(command.commanddate)
-        return command
-    })
+    
+    const result = commands.rows.map(command => {
+        command.commanddate = returnStringDate(command.commanddate);
+        command.date1 = returnStringDate(command.date1)
+        command.date2 = returnStringDate(command.date2)
+        return command;
+   });
 
     return res.status(200).json({
         success: true,
