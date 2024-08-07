@@ -90,8 +90,12 @@ exports.create = asyncHandler(async (req, res, next) => {
 
     contractDate = returnDate(contractDate.trim());
     taskDate = returnDate(taskDate.trim());
-    if (!contractDate || !taskDate || taskDate < new Date()) {
+    if (!contractDate || !taskDate) {
         return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
+    }
+
+    if(taskDate < new Date()){
+        return next(new ErrorResponse(`Topshiriq sanasini tog"ri kiriting bugunigi kundan katta bolishi kerak : ${returnStringDate(new Date())}`))
     }
 
     const bxm = await pool.query(`SELECT * FROM bxm`);
@@ -232,6 +236,7 @@ exports.update = asyncHandler(async (req, res, next) => {
     }
 
     if(clientMFO){
+        console.log(clientMFO.toString())
         if(clientMFO.toString().length !== 5){
             return next(new ErrorResponse("mfo raqami 5 xonali boishi kerak", 400))
         }
