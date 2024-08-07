@@ -118,10 +118,13 @@ exports.getBattalionAndWorkers = asyncHandler(async (req, res, next) => {
         let result = []
 
     for(let battalion of batalyons.rows){
-        const workers = await pool.query(`SELECT DISTINCT(worker_name), SUM(summa) * $1 AS allSumma
+        const workers = await pool.query(`
+            SELECT worker_name, 
+            ROUND((SUM(summa) * $1)::numeric, 0) AS allSumma
             FROM worker_tasks 
             WHERE command_id = $2 AND user_id = $3
             GROUP BY worker_name
+            ORDER BY worker_name
         `,[percent, req.params.id, battalion.id])
 
         if(workers.rows.length !== 0){

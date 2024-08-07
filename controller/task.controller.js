@@ -16,14 +16,14 @@ exports.getAllTasks = asyncHandler(async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const offset = (page - 1) * limit;
     
-    /*let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE user_id = $1 `, [req.user.id])
+    let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE user_id = $1 `, [req.user.id])
         let tests = blockTask(taskTest.rows)
         for (let test of tests) {
             await pool.query(`UPDATE tasks 
                 SET notdone = $1, done = $2, inprogress = $3
                 WHERE id = $4
             `, [true, false, false, test.id])
-    }*/
+    }
 
     const tasks = await pool.query(`
         SELECT id, contractnumber, clientname, taskdate, inProgress, done, notdone 
@@ -63,14 +63,14 @@ exports.filterByStatus = asyncHandler(async (req, res, next) => {
                         req.query.done ? 'done = TRUE' :
                         req.query.notDone ? 'notdone = TRUE' : '1=1'; // Default to 1=1 if no query
 
-    /*let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE user_id = $1 `, [req.user.id])
+    let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE user_id = $1 `, [req.user.id])
         let tests = blockTask(taskTest.rows)
         for (let test of tests) {
             await pool.query(`UPDATE tasks 
                 SET notdone = $1, done = $2, inprogress = $3
                 WHERE id = $4
                 `, [true, false, false, test.id])
-    }*/
+    }
 
     const tasks = await pool.query(`
         SELECT id, contractnumber, clientname, taskdate, inProgress, done, notdone 
@@ -99,14 +99,14 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
     if (!date1 || !date2) {
         return next(new ErrorResponse("Sana formati noto'g'ri kiritilgan. To'g'ri format: kun.oy.yil. Masalan: 12.12.2024", 400));
     }
-    /*let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE user_id = $1 `, [req.user.id])
+    let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE user_id = $1 `, [req.user.id])
         let tests = blockTask(taskTest.rows)
         for (let test of tests) {
             await pool.query(`UPDATE tasks 
                 SET notdone = $1, done = $2, inprogress = $3
                 WHERE id = $4
                 `, [true, false, false, test.id])
-    }*/
+    }
    
     const tasks = await pool.query(`
         SELECT id, contractnumber, clientname, taskdate, inProgress, done, notdone
@@ -160,15 +160,14 @@ exports.deleteWorker = asyncHandler(async (req, res, next) => {
  
         }
 
-        /*let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE user_id = $1 `, [req.user.id])
+        let taskTest = await pool.query(`SELECT id, taskdate, inprogress FROM tasks WHERE user_id = $1 `, [req.user.id])
         let tests = blockTask(taskTest.rows)
         for (let test of tests) {
             await pool.query(`UPDATE tasks 
                 SET notdone = $1, done = $2, inprogress = $3
                 WHERE id = $4
                 `, [true, false, false, test.id])
-        }*/
-        
+        }
         return res.status(200).json({
             success: true,
             data: "DELETE TRUE"

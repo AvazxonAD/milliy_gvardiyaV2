@@ -122,8 +122,8 @@ exports.getAllBatalyon = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
         return next(new ErrorResponse("siz admin emassiz", 403))
     }
-    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1 AND status = $2 ORDER BY username ASC
-    `, [false, false])
+    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1 AND status = $2 AND user_id = $3 ORDER BY username ASC
+    `, [false, false, req.user.id])
 
     res.status(200).json({
         success: true,
@@ -286,7 +286,7 @@ exports.searchWorker = asyncHandler(async (req, res, next) => {
             `SELECT workers.fio, workers.id, users.username 
             FROM workers 
             JOIN users ON users.id = workers.user_id
-            WHERE users.admin_id = $2 AND 
+            WHERE users.user_id = $2 AND 
             regexp_replace(lower(workers.fio), '[^a-zA-Z0-9]', '', 'g') ILIKE $1`, 
             [searchPattern, userId]
         );

@@ -43,6 +43,7 @@ exports.create = asyncHandler(async (req, res, next) => {
         treasuryaccount27
     } = req.body;
 
+
     if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
@@ -77,7 +78,6 @@ exports.create = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse(" 2-g'aznachilik hisob raqami 27 xonali boishi kerak", 400))
         }
     }
-
     const isNull = checkBattailonsIsNull(battalions);
     if (!isNull) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
@@ -90,7 +90,7 @@ exports.create = asyncHandler(async (req, res, next) => {
 
     contractDate = returnDate(contractDate.trim());
     taskDate = returnDate(taskDate.trim());
-    if (!contractDate || !taskDate) {
+    if (!contractDate || !taskDate || taskDate < new Date()) {
         return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
     }
 
@@ -411,7 +411,7 @@ exports.getAllcontracts = asyncHandler(async (req, res, next) => {
         `SELECT id, contractnumber, contractdate, clientname, address 
         FROM contracts 
         WHERE user_id = $1
-        ORDER BY contractnumber
+        ORDER BY contractnumber DESC
         OFFSET $2 
         LIMIT $3`,
         [req.user.id, offset, limit]
@@ -462,15 +462,13 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
         [contractId]
     );
 
-    /*for(let task of tasksQuery.rows){
-        let tests = blockTask(task)
-        for (let test of tests) {
-            await pool.query(`UPDATE tasks 
-                SET notdone = $1, done = $2, inprogress = $3
-                WHERE id = $4
-            `, [true, false, false, test.id])
-        }
-    }*/
+    let tests = blockTask(tasksQuery.rows)
+    for (let test of tests) {
+        await pool.query(`UPDATE tasks 
+            SET notdone = $1, done = $2, inprogress = $3
+            WHERE id = $4
+        `, [true, false, false, test.id])
+    }
 
     let iibTasksQuery = await pool.query(
         `SELECT id, battalionname, taskdate, workernumber 
@@ -535,7 +533,7 @@ exports.deleteContract = asyncHandler(async (req, res, next) => {
     }
     
     const contract = await pool.query(`DELETE FROM contracts WHERE id = $1 RETURNING id `, [req.params.id])
-
+    
     if (!contract.rows[0]) {
         return next(new ErrorResponse("server xatolik ochirib bolmadi", 500))
     }
