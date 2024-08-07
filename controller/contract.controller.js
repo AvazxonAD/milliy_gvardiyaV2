@@ -15,6 +15,7 @@ const {
     checkDateWithNowDate,
     checkBattalionName
 } = require('../utils/contract.functions');
+
 const { blockTask } = require('../utils/worker.tasks.function')
 const pool = require("../config/db");
 
@@ -33,14 +34,14 @@ exports.create = asyncHandler(async (req, res, next) => {
         clientAccount,
         clientSTR,
         treasuryAccount,
+        treasuryaccount27,
         timeLimit,
         address,
         taskDate,
         taskTime,
         battalions,
         discount,
-        accountNumber,
-        treasuryaccount27
+        accountNumber
     } = req.body;
 
 
@@ -48,14 +49,14 @@ exports.create = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
 
-    if(clientMFO){
-        if(clientMFO.toString().length !== 5){
-            return next(new ErrorResponse("mfo raqami 5 xonali boishi kerak", 400))
-        }
-    }
     if(clientAccount){
         if(clientAccount.toString().length !== 20){
             return next(new ErrorResponse("xisob raqami  raqami 20 xonali boishi kerak", 400))
+        }
+    }
+    if(clientMFO){
+        if(clientMFO.toString().length !== 5){
+            return next(new ErrorResponse("mfo raqami 5 xonali boishi kerak", 400))
         }
     }
     if(clientSTR){
@@ -64,13 +65,8 @@ exports.create = asyncHandler(async (req, res, next) => {
         }
     }
     if(treasuryAccount){
-        if(clientSTR.toString().length !== 25){
+        if(treasuryAccount.toString().length !== 25){
             return next(new ErrorResponse("g'aznichilik hisob   raqami  raqami 25 xonali boishi kerak", 400))
-        }
-    }
-    if(clientSTR){
-        if(clientSTR.toString().length !== 9){
-            return next(new ErrorResponse("str raqami  raqami 9 xonali boishi kerak", 400))
         }
     }
     if(treasuryaccount27){
@@ -132,11 +128,11 @@ exports.create = asyncHandler(async (req, res, next) => {
             contractNumber,
             contractDate,
             clientName.trim(),
-            clientAddress ? clientAddress.trim() : null,
+            clientAddress,
             clientMFO,
-            clientAccount ? clientAccount.toString() : null,
+            clientAccount,
             clientSTR,
-            treasuryAccount ? treasuryAccount.toString() : null,
+            treasuryAccount,
             timeLimit,
             address.trim(),
             discount,
@@ -148,7 +144,7 @@ exports.create = asyncHandler(async (req, res, next) => {
             taskTime,
             taskDate,
             accountNumber,
-            treasuryaccount27 ? treasuryaccount27.toString() : null,
+            treasuryaccount27,
             req.user.id
         ]
     );
@@ -192,14 +188,13 @@ exports.create = asyncHandler(async (req, res, next) => {
                 Math.round((battalion.money * 100) / 100),
                 Math.round((battalion.discountMoney * 100) / 100),
                 battalion.name,
-                address,
+                address.trim(),
                 discount,
                 timeLimit,
                 user.rows[0].id
             ]
         );
     }
-
     return res.status(201).json({
         success: true,
         data: contract.rows[0]
@@ -236,7 +231,6 @@ exports.update = asyncHandler(async (req, res, next) => {
     }
 
     if(clientMFO){
-        console.log(clientMFO.toString())
         if(clientMFO.toString().length !== 5){
             return next(new ErrorResponse("mfo raqami 5 xonali boishi kerak", 400))
         }
@@ -251,14 +245,10 @@ exports.update = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse("str raqami  raqami 9 xonali boishi kerak", 400))
         }
     }
+    console.log(treasuryAccount, treasuryaccount27)
     if(treasuryAccount){
-        if(clientSTR.toString().length !== 25){
+        if(treasuryAccount.toString().length !== 25){
             return next(new ErrorResponse("g'aznichilik hisob   raqami  raqami 25 xonali boishi kerak", 400))
-        }
-    }
-    if(clientSTR){
-        if(clientSTR.toString().length !== 9){
-            return next(new ErrorResponse("str raqami  raqami 9 xonali boishi kerak", 400))
         }
     }
     if(treasuryaccount27){
@@ -388,7 +378,7 @@ exports.update = asyncHandler(async (req, res, next) => {
             ]
         );
     }
-
+    return
     return res.status(201).json({
         success: true,
         data: contract.rows
@@ -1080,14 +1070,10 @@ exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse("str raqami  raqami 9 xonali boishi kerak", 400))
         }
     }
+    console.log(treasuryAccount, treasuryaccount27)
     if(treasuryAccount){
-        if(clientSTR.toString().length !== 25){
+        if(treasuryAccount.toString().length !== 25){
             return next(new ErrorResponse("g'aznichilik hisob   raqami  raqami 25 xonali boishi kerak", 400))
-        }
-    }
-    if(clientSTR){
-        if(clientSTR.toString().length !== 9){
-            return next(new ErrorResponse("str raqami  raqami 9 xonali boishi kerak", 400))
         }
     }
     if(treasuryaccount27){
@@ -1099,7 +1085,7 @@ exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
     if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !accountNumber) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
-
+    console.log(treasuryAccount, treasuryaccount27)
     let date = returnDate(contractDate.toString().trim())
     const contract = await pool.query(`UPDATE contracts 
         SET contractnumber = $1, contractdate = $2, clientname= $3, timelimit = $4, clientaccount = $5, clientaddress = $6, clientmfo = $7, clientstr = $8, treasuryaccount = $9, accountnumber = $10, address = $11

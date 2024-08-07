@@ -29,7 +29,7 @@ exports.getAllTasks = asyncHandler(async (req, res, next) => {
         SELECT id, contractnumber, clientname, taskdate, inProgress, done, notdone 
         FROM tasks 
         WHERE user_id = $1
-        ORDER BY contractnumber 
+        ORDER BY contractnumber DESC
         OFFSET $2 
         LIMIT $3
     `, [req.user.id, offset, limit]);
