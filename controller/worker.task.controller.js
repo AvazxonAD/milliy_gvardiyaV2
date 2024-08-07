@@ -15,7 +15,7 @@ const {
 
 // push worker 
 exports.pushWorker = asyncHandler(async (req, res, next) => {
-    const { workers } = req.body;
+    const { workers, taskdate, tasktime } = req.body;
 
     const taskResult = await pool.query(
         `SELECT * FROM tasks WHERE id = $1 AND user_id = $2`,
@@ -27,25 +27,20 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse('Bu topshiriq vaqtida bajarilmagan yoki allaqachon bajarilgan', 400));
     }
 
-    for (let worker of workers) {
-        if (typeof worker.tasktime !== "number" || worker.tasktime < 1) {
-            return next(new ErrorResponse("ommaviy tadbir vaqtini tog'ri kiriting", 400));
-        }
-        const date = returnDate(worker.taskdate);
-        if (!date) {
-            return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400));
-        }
-        const testFor = new Date(task.taskdate);
-        testFor.setDate(testFor.getDate() + 1);
-        if (date > testFor) {
-            return next(new ErrorResponse(`Bu ${worker.fio} xodim uchun topshiriq sanasini notog'ri kiritdinggiz : ${returnStringDate(date)}`, 400));
-        }
+    if (typeof tasktime !== "number" || tasktime < 1) {
+        return next(new ErrorResponse("ommaviy tadbir vaqtini tog'ri kiriting", 400));
+    }
+    const date = returnDate(taskdate);
+    if (!date) {
+        return next(new ErrorResponse("sana formati notog'ri kiritilgan tog'ri format : kun.oy.yil . Masalan: 12.12.2024", 400));
+    }
+    const testFor = new Date(task.taskdate);
+    testFor.setDate(testFor.getDate() + 1);
+    if (date > testFor) {
+        return next(new ErrorResponse(`Topshiriq sanasini notog'ri kiritdinggiz : ${returnStringDate(date)}`, 400));
     }
 
-    let testTime = 0;
-    for (let worker of workers) {
-        testTime += worker.tasktime;
-    }
+    let testTime = Math.round((workers.length * tasktime) * 100) / 100
 
     let remainingTimeResult = await pool.query(`SELECT ROUND(SUM(tasktime)::numeric, 2) AS tasktime FROM worker_tasks WHERE task_id = $1`, [task.id]);
     let remainingTime = parseFloat(remainingTimeResult.rows[0].tasktime) || 0;
@@ -58,7 +53,7 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
         if (!worker.fio) {
             return next(new ErrorResponse("Fio topilmadi", 500));
         }
-        const fio = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2`, [worker.fio, req.user.id]);
+        const fio = await pool.query(`SELECT * FROM workers WHERE id = $1 AND user_id = $2`, [worker.id, req.user.id]);
         if (!fio.rows[0]) {
             return next(new ErrorResponse("Fio topilmadi", 500));
         }
@@ -73,7 +68,7 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
     for (let worker of workers) {
         const summa = sumMoney(task.discount, task.timemoney, worker.tasktime);
         const date = returnDate(worker.taskdate);
-        const fio = await pool.query(`SELECT * FROM workers WHERE fio = $1 AND user_id = $2`, [worker.fio, req.user.id]);
+        const fio = await pool.query(`SELECT * FROM workers WHERE id = $1 AND user_id = $2`, [worker.id, req.user.id]);
         await pool.query(
             `INSERT INTO worker_tasks (contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_name, user_id, discount, contractnumber, worker_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
@@ -90,7 +85,7 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
                 worker.fio,
                 req.user.id,
                 task.discount,
-                contract.contractnumber, 
+                contract.contractnumber,
                 fio.rows[0].id
             ]
         );
@@ -112,14 +107,12 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
     });
 });
 
-
-
 // get all tasks of worker 
 exports.getAlltasksOfWorker = asyncHandler(async (req, res, next) => {
-    const worker = await pool.query(`SELECT fio FROM workers WHERE id = $1`, [req.params.id])
+    const worker = await pool.query(`SELECT id FROM workers WHERE id = $1`, [req.params.id])
 
     const tasks = await pool.query(`SELECT taskdate, summa, clientname, pay, address 
-        FROM worker_tasks WHERE worker_name = $1`, [worker.rows[0].fio])
+        FROM worker_tasks WHERE worker_id = $1`, [worker.rows[0].id])
     let result = tasks.rows.map(task => {
         task.taskdate = returnStringDate(task.taskdate)
         return task

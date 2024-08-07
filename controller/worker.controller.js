@@ -1,6 +1,6 @@
 const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
-const checkUsername = require('../utils/checkUserName');
+const {checkUsername}= require('../utils/checkUserName');
 const pool = require("../config/db");
 const xlsx = require('xlsx');
 const { returnStringDate } = require("../utils/date.function");
@@ -37,7 +37,7 @@ exports.create = asyncHandler(async (req, res, next) => {
     const user = await pool.query(`SELECT user_id FROM users WHERE id = $1`, [req.user.id])
     const admin = await pool.query(`SELECT id FROM users WHERE id = $1`, [user.rows[0].user_id])
     for (let worker of workers) {
-        const fioInsert = `${worker.lastname.trim().toLowerCase()} ${worker.firstname.trim().toLowerCase()} ${worker.fatherName.trim().toLowerCase()}`;
+        const fioInsert = `${worker.lastname.trim()} ${worker.firstname.trim()} ${worker.fatherName.trim()}`;
         const fio = await pool.query(`INSERT INTO workers(fio, user_id, admin_id) VALUES($1, $2, $3) RETURNING *
             `, [fioInsert, req.user.id, admin.rows[0].id])
         if (!fio.rows[0]) {
@@ -255,29 +255,48 @@ exports.deleteWorker = asyncHandler(async (req, res, next) => {
     });
 });
 
+
 // search worker 
 exports.searchWorker = asyncHandler(async (req, res, next) => {
+    const { fio } = req.body;
+    const userId = req.user.id;
+    const isAdmin = req.user.adminstatus;
 
-    const { fio } = req.body
-    let worker = null
-    if (!req.user.adminstatus) {
-        worker = await pool.query(`SELECT * FROM workers WHERE fio ILIKE '%' || $1 || '%' AND user_id = $2 `, [fio.trim(), req.user.id])
-        return res.status(200).json({
-            success: true,
-            data: worker.rows
-        })
+    if (!fio || !userId) {
+        return res.status(400).json({
+            success: false,
+            message: 'FIO yoki user ID yo\'q'
+        });
     }
-    worker = await pool.query(`SELECT workers.fio, workers.id, users.username FROM workers 
-        JOIN users ON users.id = workers.user_id
-        WHERE fio ILIKE '%' || $1 || '%' AND admin_id = $2 
-        `, [fio.trim(), req.user.id])
 
+    const fioTrimmed = fio.trim().toLowerCase();
+    const searchPattern = `%${fioTrimmed.replace(/[\W_]+/g, '')}%`;
+
+    let worker;
+
+    if (!isAdmin) {
+        worker = await pool.query(
+            `SELECT * FROM workers 
+            WHERE user_id = $2 AND 
+            regexp_replace(lower(fio), '[^a-zA-Z0-9]', '', 'g') ILIKE $1`, 
+            [searchPattern, userId]
+        );
+    } else {
+        worker = await pool.query(
+            `SELECT workers.fio, workers.id, users.username 
+            FROM workers 
+            JOIN users ON users.id = workers.user_id
+            WHERE users.admin_id = $2 AND 
+            regexp_replace(lower(workers.fio), '[^a-zA-Z0-9]', '', 'g') ILIKE $1`, 
+            [searchPattern, userId]
+        );
+    }
 
     return res.status(200).json({
         success: true,
         data: worker.rows
-    })
-})
+    });
+});
 
 // excel file create
 exports.createExcel = asyncHandler(async (req, res, next) => {
@@ -383,7 +402,7 @@ exports.importExcel = asyncHandler(async (req, res, next) => {
 
 // for push 
 exports.forPush = asyncHandler(async (req, res, next) => {
-    workers = await pool.query(`SELECT fio FROM workers 
+    workers = await pool.query(`SELECT fio, id  FROM workers 
             WHERE user_id = $1
             ORDER BY fio ASC
         `, [req.user.id])

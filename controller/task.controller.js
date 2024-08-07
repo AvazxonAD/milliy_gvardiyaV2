@@ -191,7 +191,8 @@ exports.getTaskInfoModal = asyncHandler(async (req, res, next) => {
         clientname: `Буюртмачи номи - ${task.clientname}`,
         timelimit: `Тадбир отадиган кунёки кунлар - ${task.timelimit}`,
         workernumber: `Ходимлар сони - ${task.workernumber}`,
-        tasktime: `Битта ходим учун умумий топшириқ вақти - ${task.tasktime}`
+        tasktime: `Битта ходим учун умумий топшириқ вақти - ${task.tasktime}`,
+        address: `Address - ${task.address}`
     }
 
     return res.status(200).json({
@@ -202,7 +203,10 @@ exports.getTaskInfoModal = asyncHandler(async (req, res, next) => {
 
 // get element by id 
 exports.getById = asyncHandler(async (req, res, next) => {
-    const rows = await pool.query(`SELECT * FROM tasks WHERE id = $1 AND user_id = $2`, [req.params.id, req.user.id])
+    const rows = await pool.query(`SELECT workernumber, contractnumber, clientname, id, taskdate, done, inprogress, notdone  
+        FROM tasks WHERE id = $1 AND user_id = $2
+    `, [req.params.id, req.user.id])
+    
     if(!rows.rows[0]){
         return next(new ErrorResponse('server xatolik topshiriq topilmadi', 400))
     }

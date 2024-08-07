@@ -1,4 +1,4 @@
-module.exports = (fio) => {
+exports.checkUsername = (fio) => {
 
 
     return true;

@@ -30,7 +30,6 @@ app.use('/address', require('./router/address.router'))
 app.use('/banks', require('./router/banks.router'))
 app.use('/mfo', require('./router/mfo.router'))
 app.use('/str', require('./router/str.router'))
-app.use('/file', require('./router/file.task.router'))
 
 
 app.use(require('./middleware/errorHandler'))
