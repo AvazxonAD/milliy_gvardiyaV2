@@ -189,10 +189,13 @@ exports.getTaskInfoModal = asyncHandler(async (req, res, next) => {
         batalon: `Батальон - ${task.battalionname}`,
         contractnumber: `Шартнома рақами - ${task.contractnumber}`,
         clientname: `Буюртмачи номи - ${task.clientname}`,
+        address: `Address - ${task.address}`,
         timelimit: `Тадбир отадиган кунёки кунлар - ${task.timelimit}`,
         workernumber: `Ходимлар сони - ${task.workernumber}`,
         tasktime: `Битта ходим учун умумий топшириқ вақти - ${task.tasktime}`,
-        address: `Address - ${task.address}`
+        done: task.done,
+        notDone: task.notdone,
+        inProgress: task.inprogress
     }
 
     return res.status(200).json({

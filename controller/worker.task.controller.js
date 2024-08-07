@@ -1,7 +1,6 @@
 const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const pool = require("../config/db");
-const xlsx = require('xlsx')
 
 const {
     returnDate,
@@ -16,6 +15,7 @@ const {
 // push worker 
 exports.pushWorker = asyncHandler(async (req, res, next) => {
     const { workers, taskdate, tasktime } = req.body;
+    console.log(req.body)
 
     const taskResult = await pool.query(
         `SELECT * FROM tasks WHERE id = $1 AND user_id = $2`,
@@ -50,7 +50,7 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
     }
 
     for (let worker of workers) {
-        if (!worker.fio) {
+        if (!worker.id) {
             return next(new ErrorResponse("Fio topilmadi", 500));
         }
         const fio = await pool.query(`SELECT * FROM workers WHERE id = $1 AND user_id = $2`, [worker.id, req.user.id]);
@@ -66,15 +66,15 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
     const contract = contractResult.rows[0];
 
     for (let worker of workers) {
-        const summa = sumMoney(task.discount, task.timemoney, worker.tasktime);
-        const date = returnDate(worker.taskdate);
+        const summa = sumMoney(task.discount, task.timemoney, tasktime);
+        const date = returnDate(taskdate);
         const fio = await pool.query(`SELECT * FROM workers WHERE id = $1 AND user_id = $2`, [worker.id, req.user.id]);
         await pool.query(
             `INSERT INTO worker_tasks (contract_id, tasktime, summa, taskdate, clientname, ispay, onetimemoney, address, task_id, worker_name, user_id, discount, contractnumber, worker_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
             [
                 task.contract_id,
-                worker.tasktime,
+                tasktime,
                 summa.summa,
                 date,
                 task.clientname,
@@ -82,7 +82,7 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
                 summa.timemoney,
                 contract.address,
                 task.id,
-                worker.fio,
+                fio.rows[0].fio,
                 req.user.id,
                 task.discount,
                 contract.contractnumber,
