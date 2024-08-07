@@ -15,7 +15,6 @@ const {
 // push worker 
 exports.pushWorker = asyncHandler(async (req, res, next) => {
     const { workers, taskdate, tasktime } = req.body;
-    console.log(req.body)
 
     const taskResult = await pool.query(
         `SELECT * FROM tasks WHERE id = $1 AND user_id = $2`,
@@ -44,7 +43,7 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
 
     let remainingTimeResult = await pool.query(`SELECT ROUND(SUM(tasktime)::numeric, 2) AS tasktime FROM worker_tasks WHERE task_id = $1`, [task.id]);
     let remainingTime = parseFloat(remainingTimeResult.rows[0].tasktime) || 0;
-    const time = parseFloat(((task.tasktime * task.workernumber) - remainingTime).toFixed(2));
+    const time = parseFloat(((testTime * task.workernumber) - remainingTime).toFixed(2));
     if (testTime > time) {
         return next(new ErrorResponse(`Ushbu topshiriq uchun kiritiladigan vaqtning qoldig'i ${time}`, 400));
     }
@@ -93,7 +92,7 @@ exports.pushWorker = asyncHandler(async (req, res, next) => {
 
     remainingTimeResult = await pool.query(`SELECT ROUND(SUM(tasktime)::numeric, 2) AS tasktime FROM worker_tasks WHERE task_id = $1`, [task.id]);
     remainingTime = parseFloat(remainingTimeResult.rows[0].tasktime) || 0;
-    const resultTime = parseFloat(((task.tasktime * task.workernumber) - remainingTime).toFixed(2));
+    const resultTime = parseFloat(((tasktime * task.workernumber) - remainingTime).toFixed(2));
     if (resultTime === 0) {
         await pool.query(
             `UPDATE tasks SET inprogress = $1, done = $2, notdone = $3 WHERE id = $4`,
