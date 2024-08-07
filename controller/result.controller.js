@@ -110,6 +110,7 @@ exports.getBattalionAndWorkers = asyncHandler(async (req, res, next) => {
         command.date2 = returnStringDate(command.date2)
         return command  
     })
+    const percent = req.query.percent / 100 || 1
 
     const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1 AND status = $2 AND user_id = $3
     `, [false, false, req.user.id])
@@ -117,15 +118,17 @@ exports.getBattalionAndWorkers = asyncHandler(async (req, res, next) => {
         let result = []
 
     for(let battalion of batalyons.rows){
-        const workers = await pool.query(`SELECT DISTINCT(worker_name), SUM(summa) AS allSumma
+        const workers = await pool.query(`SELECT DISTINCT(worker_name), SUM(summa) * $1 AS allSumma
             FROM worker_tasks 
-            WHERE command_id = $1 AND user_id = $2 
+            WHERE command_id = $2 AND user_id = $3
             GROUP BY worker_name
-            `,[req.params.id, battalion.id])
+        `,[percent, req.params.id, battalion.id])
+
         if(workers.rows.length !== 0){
             result.push({batalyonName: battalion.username, workers: workers.rows})
         }
     }
+
     return res.status(200).json({
         success: true,
         data: result,
@@ -189,7 +192,7 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
                 'Buyruq_raqami': command.rows[0].commandnumber,
                 'Batalyon nomi': batalyon.batalyonName,
                 'FIO': worker.worker_name,
-                'Umumiy summa': worker.allsumma ? Math.round((worker.allsumma * 0.25) * 100) / 100 : 0
+                'Umumiy summa': worker.allsumma
             });
         });
     });
