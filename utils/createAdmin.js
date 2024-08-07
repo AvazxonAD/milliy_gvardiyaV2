@@ -67,6 +67,11 @@ module.exports = async () => {
             await pool.query(`INSERT INTO users(username, adminStatus, password) VALUES ($1, $2, $3)
                 `, ["Toshkent_sh", true, "123"])
         }
+        const Fargona  = await pool.query(`SELECT * FROM users WHERE adminStatus = $1 AND username = $2`, [true, 'Fargona'])
+        if(Fargona.rows.length < 1){
+            await pool.query(`INSERT INTO users(username, adminStatus, password) VALUES ($1, $2, $3)
+                `, ["Fargona", true, "123"])
+        }
         return
     } catch (error) {
         throw error

@@ -270,7 +270,7 @@ exports.searchWorker = asyncHandler(async (req, res, next) => {
     }
 
     const fioTrimmed = fio.trim().toLowerCase();
-    const searchPattern = `%${fioTrimmed.replace(/[\W_]+/g, '')}%`;
+    const searchPattern = `%${fioTrimmed}%`;
 
     let worker;
 
@@ -278,7 +278,7 @@ exports.searchWorker = asyncHandler(async (req, res, next) => {
         worker = await pool.query(
             `SELECT * FROM workers 
             WHERE user_id = $2 AND 
-            regexp_replace(lower(fio), '[^a-zA-Z0-9]', '', 'g') ILIKE $1`, 
+            lower(fio) LIKE lower($1)`, 
             [searchPattern, userId]
         );
     } else {
@@ -287,7 +287,7 @@ exports.searchWorker = asyncHandler(async (req, res, next) => {
             FROM workers 
             JOIN users ON users.id = workers.user_id
             WHERE users.user_id = $2 AND 
-            regexp_replace(lower(workers.fio), '[^a-zA-Z0-9]', '', 'g') ILIKE $1`, 
+            lower(workers.fio) LIKE lower($1)`, 
             [searchPattern, userId]
         );
     }

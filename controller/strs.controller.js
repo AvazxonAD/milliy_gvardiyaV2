@@ -15,8 +15,8 @@ exports.create = asyncHandler(async (req, res, next) => {
 
     const { str } = req.body;
 
-    if (!str) {
-        return next(new ErrorResponse(`Sorovlar bosh qolishi mumkin emas`, 400));
+    if (!str || str.toString().length !== 9) {
+        return next(new ErrorResponse(`Sorovlar bosh qolishi mumkin emas va 9 xonali raqam bolishi kerak`, 400));
     }
 
     const strResult = await pool.query(`INSERT INTO strs(str, user_id) VALUES($1, $2) RETURNING *`, [str.trim(), req.user.id]);
@@ -35,8 +35,8 @@ exports.update = asyncHandler(async (req, res, next) => {
     
     const { str } = req.body;
 
-    if (!str) {
-        return next(new ErrorResponse(`Sorovlar bosh qolishi mumkin emas`, 400));
+    if (!str || str.toString().length !== 9) {
+        return next(new ErrorResponse(`Sorovlar bosh qolishi mumkin emas va 9 xonali son bolishi kerak`, 400));
     }
 
     const strResult = await pool.query(`UPDATE strs SET str = $1 WHERE id = $2 RETURNING *`, [str, req.params.id]);

@@ -128,11 +128,11 @@ exports.create = asyncHandler(async (req, res, next) => {
             contractNumber,
             contractDate,
             clientName.trim(),
-            clientAddress,
-            clientMFO,
-            clientAccount,
-            clientSTR,
-            treasuryAccount,
+            clientAddress ? clientAddress : null,
+            clientMFO ? clientMFO : null,
+            clientAccount ? clientAccount : null,
+            clientSTR ? clientSTR : null,
+            treasuryAccount ? treasuryAccount : null,
             timeLimit,
             address.trim(),
             discount,
@@ -144,7 +144,7 @@ exports.create = asyncHandler(async (req, res, next) => {
             taskTime,
             taskDate,
             accountNumber,
-            treasuryaccount27,
+            treasuryaccount27 ? treasuryaccount27 : null,
             req.user.id
         ]
     );
@@ -245,7 +245,6 @@ exports.update = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse("str raqami  raqami 9 xonali boishi kerak", 400))
         }
     }
-    console.log(treasuryAccount, treasuryaccount27)
     if(treasuryAccount){
         if(treasuryAccount.toString().length !== 25){
             return next(new ErrorResponse("g'aznichilik hisob   raqami  raqami 25 xonali boishi kerak", 400))
@@ -275,7 +274,6 @@ exports.update = asyncHandler(async (req, res, next) => {
     // Calculate contract details
     const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, battalions, discount, taskTime);
     const forBattalion = returnBattalion(oneTimeMoney, battalions, discount, taskTime);
-
     // Update contract
     const contract = await pool.query(
         `UPDATE contracts SET 
@@ -304,11 +302,11 @@ exports.update = asyncHandler(async (req, res, next) => {
             contractNumber,
             contractDate,
             clientName,
-            clientAddress,
-            clientMFO,
-            clientAccount,
-            clientSTR,
-            treasuryAccount,
+            clientAddress ? clientAddress : null,
+            clientMFO ? clientMFO : null,
+            clientAccount ? clientAccount : null,
+            clientSTR ? clientSTR : null,
+            treasuryAccount ? treasuryAccount : null,
             timeLimit,
             address,
             discount,
@@ -318,7 +316,7 @@ exports.update = asyncHandler(async (req, res, next) => {
             Math.round((forContract.money * 100) / 100),
             Math.round((forContract.discountMoney * 100) / 100),
             accountNumber,
-            treasuryaccount27,
+            treasuryaccount27 ? treasuryaccount27 : null,
             taskDate,
             req.params.id
         ]
@@ -378,7 +376,6 @@ exports.update = asyncHandler(async (req, res, next) => {
             ]
         );
     }
-    return
     return res.status(201).json({
         success: true,
         data: contract.rows
@@ -1054,7 +1051,6 @@ exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
         timeLimit, 
         accountNumber 
     } = req.body
-    
     if(clientMFO){
         if(clientMFO.toString().length !== 5){
             return next(new ErrorResponse("mfo raqami 5 xonali boishi kerak", 400))
@@ -1070,7 +1066,6 @@ exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse("str raqami  raqami 9 xonali boishi kerak", 400))
         }
     }
-    console.log(treasuryAccount, treasuryaccount27)
     if(treasuryAccount){
         if(treasuryAccount.toString().length !== 25){
             return next(new ErrorResponse("g'aznichilik hisob   raqami  raqami 25 xonali boishi kerak", 400))
@@ -1085,7 +1080,6 @@ exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
     if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !accountNumber) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
-    console.log(treasuryAccount, treasuryaccount27)
     let date = returnDate(contractDate.toString().trim())
     const contract = await pool.query(`UPDATE contracts 
         SET contractnumber = $1, contractdate = $2, clientname= $3, timelimit = $4, clientaccount = $5, clientaddress = $6, clientmfo = $7, clientstr = $8, treasuryaccount = $9, accountnumber = $10, address = $11
@@ -1096,15 +1090,18 @@ exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
         date,
         clientName,
         timeLimit,
-        clientAccount,
-        clientAddress,
-        clientMFO,
-        clientSTR,
-        treasuryAccount,
+        clientAccount ? clientAccount : null,
+        clientAddress ? clientAddress : null,
+        clientMFO ? clientMFO : null,
+        clientSTR ? clientSTR : null,
+        treasuryAccount ? treasuryAccount : null,
         accountNumber,
         address,
         req.params.id
     ])
+    await pool.query(`UPDATE tasks SET timelimit = $1 WHERE contract_id = $2`, [contract.rows[0].timelimit, req.params.id])
+    await pool.query(`UPDATE iib_tasks SET timelimit = $1 WHERE contract_id = $2`, [contract.rows[0].timelimit, req.params.id])
+
     return res.status(200).json({
         success: true,
         data: contract.rows[0]

@@ -15,8 +15,8 @@ exports.create = asyncHandler(async (req, res, next) => {
 
     const { mfo } = req.body;
 
-    if (!mfo) {
-        return next(new ErrorResponse(`Sorovlar bosh qolishi mumkin emas`, 400));
+    if (!mfo || mfo.toString().length !== 5) {
+        return next(new ErrorResponse(`Sorovlar bosh qolishi mumkin emas va 5 xonali raqam bolishi kerak`, 400));
     }
 
     const mfoResult = await pool.query(`INSERT INTO mfos(mfo, user_id) VALUES($1, $2) RETURNING *`, [mfo.trim(), req.user.id]);
@@ -35,8 +35,8 @@ exports.update = asyncHandler(async (req, res, next) => {
     
     const { mfo } = req.body;
 
-    if (!mfo) {
-        return next(new ErrorResponse(`Sorovlar bosh qolishi mumkin emas`, 400));
+    if (!mfo || mfo.toString().length !== 5) {
+        return next(new ErrorResponse(`Sorovlar bosh qolishi mumkin emas va 5 xonali son bolishi kerak`, 400));
     }
 
     const mfoResult = await pool.query(`UPDATE mfos SET mfo = $1 WHERE id = $2 RETURNING *`, [mfo, req.params.id]);
