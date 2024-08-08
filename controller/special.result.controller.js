@@ -111,6 +111,7 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
             FROM iib_tasks 
             WHERE user_id = $1 
             AND command_id = $2
+            ORDER BY contractnumber
         `;
         const payTasks = await pool.query(payTasksQuery, [batalyon.id, command.rows[0].id]);
 
@@ -131,6 +132,7 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
             AND pay = $2 
             AND taskdate < $3 
             AND command_id IS NULL
+            ORDER BY conrtactnumber
         `;
         const tasks = await pool.query(tasksQuery, [batalyon.id, false, command.rows[0].date2]);
 
