@@ -147,6 +147,10 @@ exports.taskWorkers = asyncHandler(async (req, res, next) => {
 
 // delete worker 
 exports.deleteWorker = asyncHandler(async (req, res, next) => {
+    if(!req.user.adminstatus){
+        return next(new ErrorResponse('Admin bilan boglaning', 403))
+    }
+    
     const worker_task = await pool.query(`DELETE FROM worker_tasks WHERE id = $1 AND pay = $2 RETURNING id `, [req.params.id, false])
     
     if(!worker_task.rows[0]){
