@@ -151,11 +151,11 @@ exports.getProfile = asyncHandler(async (req, res, next) => {
 });
 
 // delete users 
-exports.deleteUser = asyncHandler(async (req, res, enxt) =>{
+exports.deleteUser = asyncHandler(async (req, res, next) =>{
     if(!req.user.adminstatus){
         return next(new ErrorResponse("siz admin emassiz", 400))
     }
-    const delteUser = await pool.query(`DELETE FROM users WHERE id = $1 RETURNING *`, [req.params.id])
+    const delteUser = await pool.query(`DELETE FROM users WHERE id = $1 AND user_id = $2 RETURNING *`, [req.params.id, req.user.id])
     if(delteUser.rows[0]){
         return res.status(200).json({
             success: true,

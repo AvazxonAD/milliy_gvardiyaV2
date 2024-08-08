@@ -37,7 +37,7 @@ exports.createSpecial = asyncHandler(async (req, res, next) => {
     const command = await pool.query(`INSERT INTO commands (date1, date2, commanddate, commandnumber, status, user_id) VALUES($1, $2, $3, $4, $5, $6) RETURNING *
         `, [date1, date2, commandDate, commandNumber, true, req.user.id])
 
-    const iib_battalions = await pool.query(`SELECT id FROM users WHERE user_id = $1`, [req.user.id])
+    const iib_battalions = await pool.query(`SELECT id FROM users WHERE user_id = $1 AND status = $2`, [req.user.id, true])
     for (let battalion of iib_battalions.rows) {
         await pool.query(`
             UPDATE iib_tasks  
@@ -107,7 +107,7 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
 
     for (let batalyon of batalyons.rows) {
         const payTasksQuery = `
-            SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney
+            SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney, ispay
             FROM iib_tasks 
             WHERE user_id = $1 
             AND command_id = $2
@@ -126,7 +126,7 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
         }));
 
         const tasksQuery = `
-            SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney
+            SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney, ispay
             FROM iib_tasks 
             WHERE user_id = $1 
             AND pay = $2 
@@ -163,14 +163,17 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
             AND command_id IS NULL
         `;
         const notPaySumma = await pool.query(notPaySummaQuery, [batalyon.id, false, command.rows[0].date2]);
-
+        
+        const notpaysumma = notPaySumma.rows[0].sum || 0
+        const paySumma = summa.rows[0].sum || 0
         if (tasks.rows.length !== 0 || payTasks.rows.length !== 0) {
             resultArray.push({
                 batalyonName: batalyon.username,
                 payContracts: resultPayTasks,
-                summa: summa.rows[0].sum || 0,
                 notPayContracts: resultTasks,
-                notPaySumma: notPaySumma.rows[0].sum || 0
+                notPaySumma: notpaysumma,
+                summa: paySumma,
+                allMoney: paySumma + notpaysumma 
             });
         }
     }

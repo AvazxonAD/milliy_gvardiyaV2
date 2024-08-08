@@ -183,22 +183,50 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
 
 // create excel 
 exports.createExcel = asyncHandler(async (req, res, next) => {
-    const { data } = req.body;
+    const command = await pool.query(`SELECT id, commandnumber, commanddate, date1, date2  FROM commands WHERE id = $1`, [req.params.id])
+    let resultCommand  = command.rows.map(command => {
+        command.commanddate = returnStringDate(command.commanddate)
+        command.date1 = returnStringDate(command.date1)
+        command.date2 = returnStringDate(command.date2)
+        return command  
+    })
+    const percent = req.query.percent / 100 || 1
 
-    // Buyruqni olish
-    const command = await pool.query(`SELECT * FROM commands WHERE id = $1`, [req.params.id]);
+    const batalyons = await pool.query(`SELECT username, id  FROM users WHERE adminstatus = $1 AND status = $2 AND user_id = $3
+    `, [false, false, req.user.id])
+    
+        let result = []
+    
+    for(let battalion of batalyons.rows){
+        const workers = await pool.query(`
+            SELECT worker_name, 
+            ROUND((SUM(summa) * $1)::numeric, 0) AS allSumma
+            FROM worker_tasks 
+            WHERE command_id = $2 AND user_id = $3
+            GROUP BY worker_name
+            ORDER BY worker_name
+        `,[percent, req.params.id, battalion.id])
+        const allsumma = await pool.query(`
+            SELECT ROUND((SUM(summa) * $1)::numeric, 0) AS allSumma
+            FROM worker_tasks 
+            WHERE command_id = $2 AND user_id = $3
+        `,[percent, req.params.id, battalion.id])
 
+        if(workers.rows.length !== 0){
+            result.push({batalyonName: battalion.username, allsumma: allsumma.rows[0].allsumma, workers: workers.rows})
+        }
+    }
     const worksheetData = [];
-
     // Ma'lumotlarni to'plash
-    data.forEach(batalyon => {
+    result.forEach(batalyon => {
         batalyon.workers.forEach(worker => {
             worksheetData.push({
-                'Buyruq_sana': returnStringDate(command.rows[0].commanddate),
-                'Boshlanish_sana': returnStringDate(command.rows[0].date1),
-                'Tugallash_sana': returnStringDate(command.rows[0].date2),
-                'Buyruq_raqami': command.rows[0].commandnumber,
+                'Buyruq_sana': resultCommand[0].commanddate,
+                'Boshlanish_sana': resultCommand[0].date1,
+                'Tugallash_sana': resultCommand[0].date2,
+                'Buyruq_raqami': resultCommand[0].commandnumber,
                 'Batalyon nomi': batalyon.batalyonName,
+                'Batalon umumiy summa': batalyon.allsumma,
                 'FIO': worker.worker_name,
                 'Umumiy summa': worker.allsumma
             });
@@ -213,6 +241,7 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
             'Tugallash_sana',
             'Buyruq_raqami',
             'Batalyon nomi',
+            'Batalon umumiy summa',
             'FIO',
             'Umumiy summa'
         ]
@@ -225,6 +254,7 @@ exports.createExcel = asyncHandler(async (req, res, next) => {
         { width: 20 }, // Tugallash_sana
         { width: 15 }, // Buyruq_raqami
         { width: 20 }, // Batalyon nomi
+        { width: 20 }, // Batalon umumiy summa
         { width: 40 }, // FIO
         { width: 15 }  // Umumiy summa
     ];
