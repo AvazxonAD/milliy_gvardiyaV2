@@ -107,7 +107,7 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
 
     for (let batalyon of batalyons.rows) {
         const tasksQuery = `
-            SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney, ispay
+            SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney, pay
             FROM iib_tasks 
             WHERE (user_id = $1 AND command_id = $2) 
             OR (user_id = $3 AND pay = $4 
