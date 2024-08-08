@@ -150,7 +150,7 @@ exports.deleteWorker = asyncHandler(async (req, res, next) => {
     const worker_task = await pool.query(`DELETE FROM worker_tasks WHERE id = $1 AND pay = $2 RETURNING id `, [req.params.id, false])
     
     if(!worker_task.rows[0]){
-        return next(new ErrorResponse(`${worker_name} uchun xizmat puli tolab bolingan endi ushbu amalni bajara olmaysiz`, 400))
+        return next(new ErrorResponse(`ushbu amalni bajara olmaysiz`, 400))
     }
 
     if(worker_task.rows[0]){
