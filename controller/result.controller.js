@@ -116,7 +116,7 @@ exports.getBattalionAndWorkers = asyncHandler(async (req, res, next) => {
     `, [false, false, req.user.id])
     
         let result = []
-
+    
     for(let battalion of batalyons.rows){
         const workers = await pool.query(`
             SELECT worker_name, 
@@ -126,9 +126,14 @@ exports.getBattalionAndWorkers = asyncHandler(async (req, res, next) => {
             GROUP BY worker_name
             ORDER BY worker_name
         `,[percent, req.params.id, battalion.id])
+        const allsumma = await pool.query(`
+            SELECT ROUND((SUM(summa) * $1)::numeric, 0) AS allSumma
+            FROM worker_tasks 
+            WHERE command_id = $2 AND user_id = $3
+        `,[percent, req.params.id, battalion.id])
 
         if(workers.rows.length !== 0){
-            result.push({batalyonName: battalion.username, workers: workers.rows})
+            result.push({batalyonName: battalion.username, allsumma: allsumma.rows[0].allsumma, workers: workers.rows})
         }
     }
 
