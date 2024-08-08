@@ -106,37 +106,18 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
     const batalyons = await pool.query(batalyonsQuery, [true, req.user.id]);
 
     for (let batalyon of batalyons.rows) {
-        const payTasksQuery = `
-            SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney, ispay
-            FROM iib_tasks 
-            WHERE user_id = $1 
-            AND command_id = $2
-            ORDER BY contractnumber
-        `;
-        const payTasks = await pool.query(payTasksQuery, [batalyon.id, command.rows[0].id]);
-
-        const resultPayTasks = await Promise.all(payTasks.rows.map(async task => {
-            const timelimit = await pool.query(`
-                SELECT timelimit 
-                FROM contracts 
-                WHERE contractnumber = $1 AND user_id = $2
-            `, [task.contractnumber, req.user.id]);
-            task.taskdate = timelimit.rows[0].timelimit;
-            return task;
-        }));
-
         const tasksQuery = `
             SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney, ispay
             FROM iib_tasks 
-            WHERE user_id = $1 
-            AND pay = $2 
-            AND taskdate < $3 
-            AND command_id IS NULL
+            WHERE (user_id = $1 AND command_id = $2) 
+            OR (user_id = $3 AND pay = $4 
+            AND taskdate < $5 
+            AND command_id IS NULL)
             ORDER BY contractnumber
         `;
-        const tasks = await pool.query(tasksQuery, [batalyon.id, false, command.rows[0].date2]);
+        const tasks = await pool.query(tasksQuery, [batalyon.id, command.rows[0].id, batalyon.id, false, command.rows[0].date2]);
 
-        const resultTasks = await Promise.all(tasks.rows.map(async task => {
+        const resulTasks = await Promise.all(tasks.rows.map(async task => {
             const timelimit = await pool.query(`
                 SELECT timelimit 
                 FROM contracts 
@@ -166,11 +147,10 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
         
         const notpaysumma = notPaySumma.rows[0].sum || 0
         const paySumma = summa.rows[0].sum || 0
-        if (tasks.rows.length !== 0 || payTasks.rows.length !== 0) {
+        if (tasks.rows.length !== 0) {
             resultArray.push({
                 batalyonName: batalyon.username,
-                payContracts: resultPayTasks,
-                notPayContracts: resultTasks,
+                tasks: resulTasks,
                 notPaySumma: notpaysumma,
                 summa: paySumma,
                 allMoney: paySumma + notpaysumma 
@@ -186,8 +166,8 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
 
     return res.status(200).json({
         success: true,
-        data: resultArray,
-        commandDate: resultCommand
+        commandDate: resultCommand,
+        data: resultArray
     });
 });
 
