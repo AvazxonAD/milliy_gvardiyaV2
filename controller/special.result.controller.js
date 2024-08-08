@@ -132,7 +132,7 @@ exports.getIibBatalyonAndContracts = asyncHandler(async (req, res, next) => {
             AND pay = $2 
             AND taskdate < $3 
             AND command_id IS NULL
-            ORDER BY conrtactnumber
+            ORDER BY contractnumber
         `;
         const tasks = await pool.query(tasksQuery, [batalyon.id, false, command.rows[0].date2]);
 
