@@ -73,8 +73,10 @@ exports.create = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse(" 2-g'aznachilik hisob raqami 27 xonali boishi kerak", 400))
         }
     }
-    if(treasuryAccount.length > 0 && treasuryaccount27.length > 0){
-        return next(new ErrorResponse('Gaznachilik hisob raqamini ikki marta kiritdinggiz',400))
+    if(treasuryAccount && treasuryaccount27){
+        if(treasuryAccount.length > 0 && treasuryaccount27.length > 0){
+            return next(new ErrorResponse('Gaznachilik hisob raqamini ikki marta kiritdinggiz',400))
+        }
     }
     const isNull = checkBattailonsIsNull(battalions);
     if (!isNull) {
