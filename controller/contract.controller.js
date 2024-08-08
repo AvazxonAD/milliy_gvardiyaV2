@@ -459,7 +459,6 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
         WHERE contract_id = $1`,
         [contractId]
     );
-
     let tests = blockTask(tasksQuery.rows)
     for (let test of tests) {
         await pool.query(`UPDATE tasks 
@@ -467,6 +466,12 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
             WHERE id = $4
         `, [true, false, false, test.id])
     }
+    let tasksResult = await pool.query(
+        `SELECT id, battalionname, taskdate, workernumber, inprogress, done, notdone 
+        FROM tasks 
+        WHERE contract_id = $1`,
+        [contractId]
+    );
 
     let iibTasksQuery = await pool.query(
         `SELECT id, battalionname, taskdate, workernumber 
@@ -475,7 +480,7 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
         [contractId]
     );
 
-    let tasks = tasksQuery.rows.map(task => {
+    let tasks = tasksResult.rows.map(task => {
         task.taskdate = returnStringDate(task.taskdate);
         return task;
     });
