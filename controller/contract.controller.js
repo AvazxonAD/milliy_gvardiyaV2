@@ -44,7 +44,6 @@ exports.create = asyncHandler(async (req, res, next) => {
         accountNumber
     } = req.body;
 
-
     if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
@@ -73,6 +72,9 @@ exports.create = asyncHandler(async (req, res, next) => {
         if(treasuryaccount27.toString().length !== 27){
             return next(new ErrorResponse(" 2-g'aznachilik hisob raqami 27 xonali boishi kerak", 400))
         }
+    }
+    if(treasuryAccount.length > 0 && treasuryaccount27.length > 0){
+        return next(new ErrorResponse('Gaznachilik hisob raqamini ikki marta kiritdinggiz',400))
     }
     const isNull = checkBattailonsIsNull(battalions);
     if (!isNull) {
@@ -255,7 +257,9 @@ exports.update = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse(" 2-g'aznachilik hisob raqami 27 xonali boishi kerak", 400))
         }
     }
-
+    if(treasuryAccount.length > 0 && treasuryaccount27.length > 0){
+        return next(new ErrorResponse('Gaznachilik hisob raqamini ikki marta kiritdinggiz',400))
+    }
     // Check battalions
     if (!checkBattailonsIsNull(battalions)) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
@@ -1076,13 +1080,17 @@ exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
             return next(new ErrorResponse(" 2-g'aznachilik hisob raqami 27 xonali boishi kerak", 400))
         }
     }
+    
+    if(treasuryAccount.length > 0 && treasuryaccount27.length > 0){
+        return next(new ErrorResponse('Gaznachilik hisob raqamini ikki marta kiritdinggiz',400))
+    }
 
     if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !accountNumber) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
     let date = returnDate(contractDate.toString().trim())
     const contract = await pool.query(`UPDATE contracts 
-        SET contractnumber = $1, contractdate = $2, clientname= $3, timelimit = $4, clientaccount = $5, clientaddress = $6, clientmfo = $7, clientstr = $8, treasuryaccount = $9, accountnumber = $10, address = $11
+        SET contractnumber = $1, contractdate = $2, clientname= $3, timelimit = $4, clientaccount = $5, clientaddress = $6, clientmfo = $7, clientstr = $8, treasuryaccount = $9, accountnumber = $10, address = $11, treasuryAccount27 = $13
         WHERE id = $12
         RETURNING *
         `, [
@@ -1097,7 +1105,8 @@ exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
         treasuryAccount ? treasuryAccount : null,
         accountNumber,
         address,
-        req.params.id
+        req.params.id,
+        treasuryaccount27 ? treasuryaccount27 : null
     ])
     await pool.query(`UPDATE tasks SET timelimit = $1 WHERE contract_id = $2`, [contract.rows[0].timelimit, req.params.id])
     await pool.query(`UPDATE iib_tasks SET timelimit = $1 WHERE contract_id = $2`, [contract.rows[0].timelimit, req.params.id])

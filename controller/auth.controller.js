@@ -6,7 +6,6 @@ const generateToken = require('../utils/generate.token');
 // login 
 exports.login = asyncHandler(async (req, res, next) => {
     const { username, password } = req.body;
-    console.log(req.body)
     if (!username || !password) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 400));
     }
@@ -48,7 +47,7 @@ exports.createBatalyon = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("password sodda bolmasligi kerak"))
     }*/
 
-    const user = await pool.query(`SELECT * FROM users WHERE username = $1`, [username]);
+    const user = await pool.query(`SELECT * FROM users WHERE username = $1`, [username.trim()]);
 
     if (user.rows[0]) {
         return next(new ErrorResponse("Bu batalyon avval kiritilgan", 400));
