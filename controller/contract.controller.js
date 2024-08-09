@@ -411,7 +411,7 @@ exports.getAllcontracts = asyncHandler(async (req, res, next) => {
         `SELECT id, contractnumber, contractdate, clientname, address 
         FROM contracts 
         WHERE user_id = $1
-        ORDER BY contractnumber 
+        ORDER BY contractnumber DESC
         OFFSET $2 
         LIMIT $3`,
         [req.user.id, offset, limit]
