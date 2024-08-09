@@ -411,7 +411,7 @@ exports.getAllcontracts = asyncHandler(async (req, res, next) => {
         `SELECT id, contractnumber, contractdate, clientname, address 
         FROM contracts 
         WHERE user_id = $1
-        ORDER BY contractnumber DESC
+        ORDER BY contractnumber 
         OFFSET $2 
         LIMIT $3`,
         [req.user.id, offset, limit]
@@ -620,11 +620,11 @@ exports.paymentContract = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
         return next(new ErrorResponse("siz admin emassiz", 403))
     }
-    const contract = await pool.query(`UPDATE contracts SET ispay = $1 WHERE id = $2 RETURNING id`, [true, req.params.id])
 
-
-    await pool.query(`UPDATE worker_tasks SET ispay = $1 WHERE contract_id = $2`, [true, contract.rows[0].id])
-    await pool.query(`UPDATE iib_tasks SET ispay = $1 WHERE contract_id = $2`, [true, contract.rows[0].id])
+    await pool.query(`UPDATE worker_tasks SET ispay = $1 WHERE contract_id = $2`, [true,req.params.id])
+    await pool.query(`UPDATE tasks SET ispay = $1 WHERE contract_id = $2`, [true, req.params.id])
+    await pool.query(`UPDATE iib_tasks SET ispay = $1 WHERE contract_id = $2`, [true, req.params.id])
+    await pool.query(`UPDATE contracts SET ispay = $1 WHERE id = $2`, [true, req.params.id])
 
     return res.status(200).json({
         success: true,
