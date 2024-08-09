@@ -12,7 +12,7 @@ exports.returnStringDate = (date) => {
     let  month = (date.getMonth() + 1).toString().padStart(2, '0'); // "01"
     const year = date.getFullYear().toString(); // "2024"
     month = getMonth(month)
-    return topshiriqSana = `${day}-${month} ${year}-йил`;
+    return topshiriqSana = `${year}-йил ${day}-${month}`;
 }
 
 // need function 

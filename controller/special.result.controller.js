@@ -181,7 +181,7 @@ exports.getAllSpecialToExcel = asyncHandler(async (req, res, next) => {
     const command = await pool.query(commandQuery, [req.params.id]);
 
     if (!command.rows.length) {
-        return next(new ErrorResponse('server xatolik', 404));
+        return next(new ErrorResponse('Server xatolik', 404));
     }
 
     let resultArray = [];
@@ -194,41 +194,26 @@ exports.getAllSpecialToExcel = asyncHandler(async (req, res, next) => {
     const batalyons = await pool.query(batalyonsQuery, [true, req.user.id]);
 
     for (let batalyon of batalyons.rows) {
-        const payTasksQuery = `
-            SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney
-            FROM iib_tasks 
-            WHERE user_id = $1 
-            AND command_id = $2
-        `;
-        const payTasks = await pool.query(payTasksQuery, [batalyon.id, command.rows[0].id]);
-
-        const resultPayTasks = await Promise.all(payTasks.rows.map(async task => {
-            const timelimit = await pool.query(`
-                SELECT timelimit 
-                FROM contracts 
-                WHERE contractnumber = $1 AND user_id = $2
-            `, [task.contractnumber, req.user.id]);
-            task.taskdate = timelimit.rows[0].timelimit;
-            return task;
-        }));
-
         const tasksQuery = `
-            SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney
+            SELECT contractnumber, taskdate, clientname, address, workernumber, allmoney, pay
             FROM iib_tasks 
-            WHERE user_id = $1 
-            AND pay = $2 
-            AND taskdate < $3 
-            AND command_id IS NULL
+            WHERE (user_id = $1 AND command_id = $2) 
+            OR (user_id = $3 AND pay = $4 
+            AND taskdate < $5 
+            AND command_id IS NULL)
+            ORDER BY contractnumber
         `;
-        const tasks = await pool.query(tasksQuery, [batalyon.id, false, command.rows[0].date2]);
+        const tasks = await pool.query(tasksQuery, [batalyon.id, command.rows[0].id, batalyon.id, false, command.rows[0].date2]);
 
-        const resultTasks = await Promise.all(tasks.rows.map(async task => {
+        const resulTasks = await Promise.all(tasks.rows.map(async task => {
             const timelimit = await pool.query(`
                 SELECT timelimit 
                 FROM contracts 
                 WHERE contractnumber = $1 AND user_id = $2
             `, [task.contractnumber, req.user.id]);
-            task.taskdate = timelimit.rows[0].timelimit;
+            if (timelimit.rows.length) {
+                task.taskdate = timelimit.rows[0].timelimit;
+            }
             return task;
         }));
 
@@ -250,47 +235,50 @@ exports.getAllSpecialToExcel = asyncHandler(async (req, res, next) => {
         `;
         const notPaySumma = await pool.query(notPaySummaQuery, [batalyon.id, false, command.rows[0].date2]);
 
-        if (tasks.rows.length !== 0 || payTasks.rows.length !== 0) {
+        const notpaysumma = notPaySumma.rows[0].sum || 0;
+        const paySumma = summa.rows[0].sum || 0;
+        if (tasks.rows.length !== 0) {
             resultArray.push({
                 batalyonName: batalyon.username,
-                payContracts: resultPayTasks,
-                summa: summa.rows[0].sum || 0,
-                notPayContracts: resultTasks,
-                notPaySumma: notPaySumma.rows[0].sum || 0
+                tasks: resulTasks,
+                notPaySumma: notpaysumma,
+                summa: paySumma,
+                allMoney: paySumma + notpaysumma
             });
         }
     }
 
     const worksheetData = resultArray.flatMap(batalyon => {
-        const payContracts = batalyon.payContracts.map(contract => ({
+        const tasks = batalyon.tasks.map(task => ({
             'Batalyon': batalyon.batalyonName,
-            'Contract Type': 'Tolangan',
-            'Contract Number': contract.contractnumber,
-            'Task Date': contract.taskdate,
-            'Client Name': contract.clientname,
-            'Address': contract.address,
-            'Worker Number': contract.workernumber,
-            'All Money': contract.allmoney
+            'Contract Number': task.contractnumber,
+            'Task Date': task.taskdate,
+            'Client Name': task.clientname,
+            'Address': task.address,
+            'Worker Number': task.workernumber,
+            'Umumiy summa': task.allmoney,
+            'Naqd': task.pay ? task.allmoney : 0,
+            'Kridit': !task.pay ? task.allmoney : 0,
         }));
 
-        const notPayContracts = batalyon.notPayContracts.map(contract => ({
-            'Batalyon': batalyon.batalyonName,
-            'Contract Type': 'Tolanmagan',
-            'Contract Number': contract.contractnumber,
-            'Task Date': contract.taskdate,
-            'Client Name': contract.clientname,
-            'Address': contract.address,
-            'Worker Number': contract.workernumber,
-            'All Money': contract.allmoney
-        }));
-
-        return [...payContracts, ...notPayContracts];
+        return [...tasks];
     });
 
+    const worksheetData2 = resultArray.map(batalyon => ({
+        'Batalyon': batalyon.batalyonName,
+        'Umumiy summa': batalyon.allMoney,
+        'Naqd': batalyon.summa,
+        'Kridit': batalyon.notPaySumma,
+    }));
+
     const worksheet = xlsx.utils.json_to_sheet(worksheetData);
-    worksheet['!cols'] = [{ width: 20 }, { width: 20 }, { width: 15 }, { width: 80 }, { width: 80 }, { width: 80 }, { width: 15 }, { width: 15 }];
+    worksheet['!cols'] = [{ width: 20 }, { width: 20 }, { width: 80 }, { width: 80 }, { width: 80 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }];
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Contracts');
+
+    const worksheet2 = xlsx.utils.json_to_sheet(worksheetData2);
+    worksheet2['!cols'] = [{ width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }];
+    xlsx.utils.book_append_sheet(workbook, worksheet2, 'Hisobot');
 
     const buffer = xlsx.write(workbook, { type: 'buffer' });
     const filename = `${Date.now()}_contracts.xlsx`;

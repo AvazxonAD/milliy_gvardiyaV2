@@ -21,7 +21,8 @@ const {
     searchByNumber,
     searchByClientName,
     searchByAddress,
-    createExcelForReport
+    createExcelForReport,
+    canelPayment
 } = require('../controller/contract.controller')
 
 const upload = require('multer')()
@@ -34,6 +35,7 @@ router.delete('/delete/:id', protect, deleteContract)
 router.get('/print/task/worker/:id', protect, taskOfWorker)
 router.post('/filter/by/date', protect, filterByDate)
 router.get('/payment/contract/:id', protect, paymentContract)
+router.get('/canel/payment/:id', protect, canelPayment)
 router.put('/update/:id', protect, update)
 router.post('/giving/time/to/task/:id', protect, givingTimeToTask)
 router.get('/get/all/batalyon', protect, forContractBatalyonns)

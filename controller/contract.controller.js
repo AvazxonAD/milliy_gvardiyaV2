@@ -632,6 +632,18 @@ exports.paymentContract = asyncHandler(async (req, res, next) => {
     })
 })
 
+// canel payment 
+exports.canelPayment = asyncHandler(async (req, res, next) => {
+    await pool.query(`UPDATE worker_tasks SET ispay = $1, pay = $2, command_id = $3 WHERE contract_id = $4`, [false, false, null, req.params.id])
+    await pool.query(`UPDATE tasks SET ispay = $1 WHERE contract_id = $2`, [false, req.params.id])
+    await pool.query(`UPDATE iib_tasks SET ispay = $1, pay = $2, command_id = $3 WHERE contract_id = $4`, [false, false, null, req.params.id])
+    await pool.query(`UPDATE contracts SET ispay = $1 WHERE id = $2`, [false, req.params.id])
+    return res.status(200).json({
+        success: true,
+        data: "Muvaffiqiyatli bekor qilindi"
+    })
+})
+
 // giving time to task 
 exports.givingTimeToTask = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
