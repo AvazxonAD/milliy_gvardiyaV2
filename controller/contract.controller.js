@@ -1238,7 +1238,7 @@ exports.createExcelForReport = asyncHandler(async (req, res, next) => {
 
     const contracts = await pool.query(`
         SELECT 
-        id, clientname, contractnumber, contractdate, money, discount, discountmoney, allmoney, allworkernumber, tasktime, timelimit  
+        id, clientname, contractnumber, contractdate, money, discount, discountmoney, allmoney, allworkernumber, tasktime, timelimit, ispay 
         FROM contracts 
         where contractdate BETWEEN $1 AND $2 AND user_id = $3
         ORDER BY contractnumber
@@ -1292,6 +1292,8 @@ exports.createExcelForReport = asyncHandler(async (req, res, next) => {
             'Chegirma': contract.discount ? contract.discount : 0,
             'Chegirma summa': contract.discountmoney ? contract.discountmoney : 0,
             'Jami summa': contract.allmoney,
+            'Naqd': contract.ispay ? contract.allmoney : 0,
+            'Kridit': !contract.ispay ? contract.allmoney : 0,
             'Xodimlar soni': contract.allworkernumber,
             'boshlanish va tugash sanansi': contract.timelimit
         };
@@ -1315,6 +1317,8 @@ exports.createExcelForReport = asyncHandler(async (req, res, next) => {
         { width: 10 }, // Chegirma
         { width: 20 }, // Chegirma qilingan summa
         { width: 15 }, // Jami summa
+        { width: 15 }, // naqd 
+        { width: 15 }, // kridit 
         { width: 15 }, // Xodimlar soni
         { width: 50 }  // boshlanish va tugash sanansi
     ];
