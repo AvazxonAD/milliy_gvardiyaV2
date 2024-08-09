@@ -1,0 +1,1 @@
+[44mserver runing on port: \\.\pipe\d5d3e4e1-bfa4-4d55-9c48-6f2c1e569d82[49m
