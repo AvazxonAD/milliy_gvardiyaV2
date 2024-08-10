@@ -56,6 +56,7 @@ CREATE TABLE contracts (
     taskdate DATE NOT NULL,
     accountnumber VARCHAR(40) NOT NULL,
     createdAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    validityperiod DATE NOT NULL, 
     user_id INTEGER
 );
 

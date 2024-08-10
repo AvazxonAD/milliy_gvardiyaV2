@@ -1,0 +1,13 @@
+[44mserver runing on port: \\.\pipe\6cc88e10-643d-4377-a10c-8f819e1c899d[49m
+[31mError: Username yoki parol xato kiritildi
+    at D:\avazbek\deploy\milliy_gvardiyaV2\controller\auth.controller.js:16:21
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+[31mError: Username yoki parol xato kiritildi
+    at D:\avazbek\deploy\milliy_gvardiyaV2\controller\auth.controller.js:16:21
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+[31mError: Username yoki parol xato kiritildi
+    at D:\avazbek\deploy\milliy_gvardiyaV2\controller\auth.controller.js:16:21
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)[39m
+[31mError: Username yoki parol xato kiritildi
+    at D:\avazbek\deploy\milliy_gvardiyaV2\controller\auth.controller.js:16:21
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)[39m

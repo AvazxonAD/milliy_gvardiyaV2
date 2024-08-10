@@ -16,7 +16,6 @@ const {
     givingTimeToTask,
     forContractBatalyonns,
     search,
-    importExcelData,
     updateContractsInfo,
     searchByNumber,
     searchByClientName,
@@ -40,7 +39,7 @@ router.put('/update/:id', protect, update)
 router.post('/giving/time/to/task/:id', protect, givingTimeToTask)
 router.get('/get/all/batalyon', protect, forContractBatalyonns)
 router.post("/search", protect, search)
-router.post('/import/excel/data', upload.single("file"), protect, importExcelData)
+//router.post('/import/excel/data', upload.single("file"), protect, importExcelData)
 router.put('/update/info/:id', protect, updateContractsInfo)
 router.post('/search/by/number', protect, searchByNumber)
 router.post('/search/by/client/name', protect, searchByClientName)

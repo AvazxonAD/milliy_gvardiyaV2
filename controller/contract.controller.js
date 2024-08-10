@@ -41,10 +41,11 @@ exports.create = asyncHandler(async (req, res, next) => {
         taskTime,
         battalions,
         discount,
-        accountNumber
+        accountNumber,
+        validityperiod
     } = req.body;
 
-    if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber) {
+    if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber || !validityperiod) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
 
@@ -89,8 +90,9 @@ exports.create = asyncHandler(async (req, res, next) => {
     }
 
     contractDate = returnDate(contractDate.trim());
+    const validityperiodDate = returnDate(validityperiod.trim())
     taskDate = returnDate(taskDate.trim());
-    if (!contractDate || !taskDate) {
+    if (!contractDate || !taskDate || !validityperiodDate) {
         return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
     }
 
@@ -125,8 +127,9 @@ exports.create = asyncHandler(async (req, res, next) => {
             taskdate,
             accountnumber,
             treasuryaccount27,
-            user_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+            user_id,
+            validityperiod
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
         RETURNING *`,
         [
             contractNumber,
@@ -149,7 +152,8 @@ exports.create = asyncHandler(async (req, res, next) => {
             taskDate,
             accountNumber,
             treasuryaccount27 ? treasuryaccount27 : null,
-            req.user.id
+            req.user.id,
+            validityperiodDate
         ]
     );
 
@@ -227,10 +231,11 @@ exports.update = asyncHandler(async (req, res, next) => {
         battalions,
         discount,
         accountNumber,
-        treasuryaccount27
+        treasuryaccount27,
+        validityperiod
     } = req.body;
 
-    if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber) {
+    if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !taskDate || !taskTime || !accountNumber || !validityperiod) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
 
@@ -270,8 +275,9 @@ exports.update = asyncHandler(async (req, res, next) => {
     }
 
     contractDate = returnDate(contractDate.trim());
+    validityperiod = returnDate(validityperiod.trim())
     taskDate = returnDate(taskDate.trim());
-    if (!contractDate || !taskDate) {
+    if (!contractDate || !taskDate || !validityperiod) {
         return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
     }
 
@@ -303,7 +309,8 @@ exports.update = asyncHandler(async (req, res, next) => {
             discountmoney = $16,
             accountnumber = $17,
             treasuryaccount27 = $18,
-            taskdate = $19
+            taskdate = $19,
+            validityperiod = $21
         WHERE id = $20
         RETURNING *`,
         [
@@ -326,7 +333,8 @@ exports.update = asyncHandler(async (req, res, next) => {
             accountNumber,
             treasuryaccount27 ? treasuryaccount27 : null,
             taskDate,
-            req.params.id
+            req.params.id,
+            validityperiod
         ]
     );
 
@@ -443,7 +451,7 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
     const contractId = req.params.id;
 
     let contractQuery = await pool.query(
-        `SELECT id, contractnumber, contractdate, clientname, clientaddress, clientmfo, clientaccount, clientstr, treasuryaccount, address, ispay, timelimit
+        `SELECT id, contractnumber, contractdate, clientname, clientaddress, clientmfo, clientaccount, clientstr, treasuryaccount, address, ispay, timelimit, validityperiod
         FROM contracts WHERE id = $1`,
         [contractId]
     );
@@ -454,6 +462,7 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
 
     let contract = contractQuery.rows[0];
     contract.contractdate = returnStringDate(contract.contractdate);
+    contract.validityperiod = returnStringDate(contract.validityperiod)
 
     let tasksQuery = await pool.query(
         `SELECT id, battalionname, taskdate, workernumber, inprogress, done, notdone 
@@ -692,16 +701,16 @@ exports.forContractBatalyonns = asyncHandler(async (req, res, next) => {
 
 // search enterprice 
 exports.search = asyncHandler(async (req, res, next) => {
-    const { clientName } = req.body
-    if (!clientName) {
+    const { inn } = req.body
+    if (!inn) {
         return next(new ErrorResponse("sorov bosh qolmasligi kerak", 400))
     }
     let contractQuery = await pool.query(
-        `SELECT clientname, clientaddress, clientmfo, clientaccount, clientstr, treasuryaccount, address, timelimit
+        `SELECT clientname, clientaddress, clientmfo, clientaccount, clientstr, treasuryaccount, treasuryaccount27 
         FROM contracts
-        WHERE clientname ILIKE '%' || $1 || '%' AND user_id = $2
+        WHERE clientstr = $1
         ORDER BY createdat DESC`,
-    [clientName.trim(), req.user.id]);
+    [inn]);
 
     if (contractQuery.rows.length === 0) {
         return next(new ErrorResponse("Mos keladigan natijalar topilmadi", 404));
@@ -714,7 +723,7 @@ exports.search = asyncHandler(async (req, res, next) => {
 
 })
 
-// import excel data 
+/*// import excel data 
 exports.importExcelData = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
         return next(new ErrorResponse("siz admin emassiz", 403));
@@ -875,186 +884,7 @@ exports.importExcelData = asyncHandler(async (req, res, next) => {
         datas
     });
 })
-
-// import excel data 
-exports.importExcelData = asyncHandler(async (req, res, next) => {
-    if (!req.user || !req.user.adminstatus) {
-        return next(new ErrorResponse("Siz admin emassiz", 403));
-    }
-
-    // Tekshirib ko'ring, req.file mavjud
-    if (!req.file) {
-        return next(new ErrorResponse("Fayl yuklanmadi", 400));
-    }
-
-    const fileBuffer = req.file.buffer;
-
-    // xlsx.read yordamida faylni o'qish
-    let workbook;
-    try {
-        workbook = xlsx.read(fileBuffer, { type: 'buffer' });
-    } catch (error) {
-        return next(new ErrorResponse("Faylni o'qishda xatolik yuz berdi", 500));
-    }
-
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-
-    // Excel jadvalidan ma'lumotlarni o'qish
-    let datas;
-    try {
-        datas = xlsx.utils.sheet_to_json(sheet, { defval: null }).map(row => {
-            const newRow = {};
-            const battalions = [];
-
-            for (const key in row) {
-                if (["81109", "81140", "84007", "89071", "98157", "98162", "Тошкент шаҳар МГ", "Тошкент Шаҳар ИИББ"].includes(key)) {
-                    if (row[key] !== null && row[key] !== 0) {
-                        battalions.push({ name: key.trim(), workerNumber: row[key] });
-                    }
-                } else {
-                    newRow[key.trim()] = row[key];
-                }
-            }
-
-            if (battalions.length > 0) {
-                newRow.battalions = battalions;
-            }
-
-            return newRow;
-        });
-    } catch (error) {
-        return next(new ErrorResponse("Excel faylni o'qishda xatolik yuz berdi", 500));
-    }
-
-
-    let accountnumberResult = await pool.query(`SELECT accountnumber FROM accountnumber WHERE user_id = $1`, [req.user.id]);
-    if(!accountnumberResult.rows[0]){
-        return next(new ErrorResponse('xisob raqamini kiriting spravichnik bolimidan', 400))
-    }
-    let accountnumber = accountnumberResult.rows[0].accountnumber;
-
-    for (let data of datas) {
-        const isNull = checkBattailonsIsNull(data.battalions);
-        if (!isNull) {
-            return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
-        }
-
-        const testIsSame = checkBattalionName(data.battalions);
-        if (!testIsSame) {
-            return next(new ErrorResponse("Bitta shartnomada bitta organ bir marta tanlanishi kerak", 400));
-        }
-
-        const contractDate = returnDate(data.contractdate.trim());
-        const taskDate = returnDate(data.taskdate.trim());
-        if (!contractDate || !taskDate) {
-            return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
-        }
-
-        for(let battalion of data.battalions){
-            const user = await pool.query(`SELECT status, id FROM users WHERE username = $1 AND user_id = $2`, [battalion.name, req.user.id])
-            if(!user.rows[0]){
-                return next(new ErrorResponse(`Batalon nomi notog'ri : ${battalion.name}`))
-            }
-        }
-    }
-
-    for (let data of datas) {
-        const bxm = await pool.query(`SELECT * FROM bxm`);
-        const oneTimeMoney = Math.round((bxm.rows[0].summa * 0.07) * 100) / 100;
-
-        const forContract = returnWorkerNumberAndAllMoney(oneTimeMoney, data.battalions, null, data.tasktime);
-        const forBattalion = returnBattalion(oneTimeMoney, data.battalions, null, data.tasktime);
-        const contractDate = returnDate(data.contractdate.toString().trim());
-        const taskDate = returnDate(data.taskdate.toString().trim());
-
-        const contractResult = await pool.query(
-            `INSERT INTO contracts (
-                contractnumber, 
-                contractdate, 
-                clientname, 
-                timelimit, 
-                address, 
-                discount,
-                allworkernumber,
-                allmoney,
-                timemoney,
-                money,
-                discountmoney,
-                tasktime,
-                taskdate,
-                accountnumber,
-                user_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-            RETURNING *`,
-            [
-                data.contractnumber,
-                contractDate,
-                data.clientname.trim(),
-                data.timelimit,
-                data.address ? data.address.trim() : 'address',
-                null,
-                forContract.workerNumber,
-                forContract.allMoney,
-                oneTimeMoney,
-                forContract.money,
-                forContract.discountMoney,
-                data.tasktime,
-                taskDate,
-                accountnumber,
-                req.user.id
-            ]
-        );
-
-        // For loop to insert battalion data
-        for (let battalion of forBattalion) {
-            let tableName = null;
-            const user = await pool.query(`SELECT status, id FROM users WHERE username = $1 AND user_id = $2`, [battalion.name, req.user.id])
-            if (user.rows[0].status) {
-                tableName = `iib_tasks`
-            } else {
-                tableName = `tasks`
-            }
-            await pool.query(
-                `INSERT INTO ${tableName} (
-                    contract_id,
-                    contractnumber,
-                    clientname,
-                    taskdate,
-                    workernumber,
-                    timemoney,
-                    tasktime,
-                    allmoney,
-                    money,
-                    discountmoney,
-                    battalionname,
-                    address,  
-                    user_id
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-                [
-                    contractResult.rows[0].id,
-                    data.contractnumber,
-                    data.clientname,
-                    taskDate,
-                    battalion.workerNumber,
-                    battalion.oneTimeMoney,
-                    battalion.taskTime,
-                    battalion.allMoney,
-                    battalion.money,
-                    battalion.discountMoney,
-                    battalion.name,
-                    data.address ? data.address.trim() : 'address',
-                    user.rows[0].id
-                ]
-            );
-        }
-    }
-
-    return res.status(200).json({
-        success: true,
-        datas
-    });
-});
+*/
 
 // update contracts info 
 exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
@@ -1062,7 +892,7 @@ exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("Siz admin emassiz", 403));
     }
 
-    const { 
+    let { 
         address,
         contractNumber, 
         contractDate, 
@@ -1074,69 +904,102 @@ exports.updateContractsInfo = asyncHandler(async (req, res, next) => {
         treasuryAccount,
         treasuryaccount27, 
         timeLimit, 
-        accountNumber 
-    } = req.body
-    if(clientMFO){
-        if(clientMFO.toString().length !== 5){
-            return next(new ErrorResponse("mfo raqami 5 xonali boishi kerak", 400))
-        }
-    }
-    if(clientAccount){
-        if(clientAccount.toString().length !== 20){
-            return next(new ErrorResponse("xisob raqami  raqami 20 xonali boishi kerak", 400))
-        }
-    }
-    if(clientSTR){
-        if(clientSTR.toString().length !== 9){
-            return next(new ErrorResponse("str raqami  raqami 9 xonali boishi kerak", 400))
-        }
-    }
-    if(treasuryAccount){
-        if(treasuryAccount.toString().length !== 25){
-            return next(new ErrorResponse("g'aznichilik hisob   raqami  raqami 25 xonali boishi kerak", 400))
-        }
-    }
-    if(treasuryaccount27){
-        if(treasuryaccount27.toString().length !== 27){
-            return next(new ErrorResponse(" 2-g'aznachilik hisob raqami 27 xonali boishi kerak", 400))
-        }
-    }
+        accountNumber,
+        validityperiod
+    } = req.body;
     
-    if(treasuryAccount.length > 0 && treasuryaccount27.length > 0){
-        return next(new ErrorResponse('Gaznachilik hisob raqamini ikki marta kiritdinggiz',400))
+    // MFO validation
+    if (clientMFO && clientMFO.toString().length !== 5) {
+        return next(new ErrorResponse("MFO raqami 5 xonali bo'lishi kerak", 400));
     }
 
-    if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !accountNumber) {
+    // Account validation
+    if (clientAccount && clientAccount.toString().length !== 20) {
+        return next(new ErrorResponse("Hisob raqami 20 xonali bo'lishi kerak", 400));
+    }
+
+    // STR validation
+    if (clientSTR && clientSTR.toString().length !== 9) {
+        return next(new ErrorResponse("STR raqami 9 xonali bo'lishi kerak", 400));
+    }
+
+    // Treasury Account validation
+    if (treasuryAccount && treasuryAccount.toString().length !== 25) {
+        return next(new ErrorResponse("G'aznachilik hisob raqami 25 xonali bo'lishi kerak", 400));
+    }
+
+    // Treasury Account 27 validation
+    if (treasuryaccount27 && treasuryaccount27.toString().length !== 27) {
+        return next(new ErrorResponse("2-g'aznachilik hisob raqami 27 xonali bo'lishi kerak", 400));
+    }
+
+    // Check if both treasury accounts are provided
+    if (treasuryAccount && treasuryaccount27) {
+        if (treasuryAccount.length > 0 && treasuryaccount27.length > 0) {
+            return next(new ErrorResponse('G\'aznachilik hisob raqamini ikki marta kiritdingiz', 400));
+        }
+    }
+
+    // Required fields validation
+    if (!contractNumber || !contractDate || !clientName || !timeLimit || !address || !accountNumber || !validityperiod) {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 403));
     }
-    let date = returnDate(contractDate.toString().trim())
-    const contract = await pool.query(`UPDATE contracts 
-        SET contractnumber = $1, contractdate = $2, clientname= $3, timelimit = $4, clientaccount = $5, clientaddress = $6, clientmfo = $7, clientstr = $8, treasuryaccount = $9, accountnumber = $10, address = $11, treasuryAccount27 = $13
-        WHERE id = $12
-        RETURNING *
-        `, [
-        contractNumber,
-        date,
-        clientName,
-        timeLimit,
-        clientAccount ? clientAccount : null,
-        clientAddress ? clientAddress : null,
-        clientMFO ? clientMFO : null,
-        clientSTR ? clientSTR : null,
-        treasuryAccount ? treasuryAccount : null,
-        accountNumber,
-        address,
-        req.params.id,
-        treasuryaccount27 ? treasuryaccount27 : null
-    ])
-    await pool.query(`UPDATE tasks SET timelimit = $1 WHERE contract_id = $2`, [contract.rows[0].timelimit, req.params.id])
-    await pool.query(`UPDATE iib_tasks SET timelimit = $1 WHERE contract_id = $2`, [contract.rows[0].timelimit, req.params.id])
+    
+    // Date conversion
+    contractDate = returnDate(contractDate.trim());
+    validityperiod = returnDate(validityperiod.trim());
+
+    if (!contractDate || !validityperiod) {
+        return next(new ErrorResponse("Sana formatini to'g'ri kiriting: 'kun.oy.yil'. Masalan: 01.01.2024", 400));
+    }
+
+    // Update contract
+    const contract = await pool.query(`
+        UPDATE contracts 
+        SET 
+            contractnumber = $1, 
+            contractdate = $2, 
+            clientname = $3, 
+            timelimit = $4, 
+            clientaccount = $5, 
+            clientaddress = $6, 
+            clientmfo = $7, 
+            clientstr = $8, 
+            treasuryaccount = $9, 
+            accountnumber = $10, 
+            address = $11, 
+            treasuryaccount27 = $12, 
+            validityperiod = $13
+        WHERE id = $14
+        RETURNING *`,
+        [
+            contractNumber,
+            contractDate,
+            clientName,
+            timeLimit,
+            clientAccount ? clientAccount : null,
+            clientAddress ? clientAddress : null,
+            clientMFO ? clientMFO : null,
+            clientSTR ? clientSTR : null,
+            treasuryAccount ? treasuryAccount : null,
+            accountNumber,
+            address,
+            treasuryaccount27 ? treasuryaccount27 : null,
+            validityperiod,
+            req.params.id
+        ]
+    );
+
+    // Update tasks
+    await pool.query(`UPDATE tasks SET timelimit = $1 WHERE contract_id = $2`, [contract.rows[0].timelimit, req.params.id]);
+    await pool.query(`UPDATE iib_tasks SET timelimit = $1 WHERE contract_id = $2`, [contract.rows[0].timelimit, req.params.id]);
 
     return res.status(200).json({
         success: true,
         data: contract.rows[0]
-    })
-})
+    });
+});
+
 
 // search contract by number 
 exports.searchByNumber = asyncHandler(async (req, res, next) => {
