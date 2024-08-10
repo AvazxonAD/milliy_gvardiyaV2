@@ -529,6 +529,9 @@ exports.toPrint = asyncHandler(async (req, res, next) => {
     let contract = contractQuery.rows[0];
     contract.contractdate = returnStringDate(contract.contractdate);
     contract.taskdate = returnLocalDate(contract.taskdate);
+    if(contract.validityperiod){
+        contract.validityperiod = returnStringDate(contract.validityperiod)
+    }
 
     const tasksQuery = await pool.query(`SELECT id, battalionname, workernumber, timemoney, tasktime, allmoney, money, discountmoney FROM tasks WHERE contract_id = $1`, [contractId]);
     const iibTasksQuery = await pool.query(`SELECT id, battalionname, workernumber, timemoney, tasktime, allmoney, money, discountmoney FROM iib_tasks WHERE contract_id = $1`, [contractId]);
