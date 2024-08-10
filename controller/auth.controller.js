@@ -152,6 +152,7 @@ exports.getProfile = asyncHandler(async (req, res, next) => {
 
 // delete users 
 exports.deleteUser = asyncHandler(async (req, res, next) =>{
+    console.log(1)
     if(!req.user.adminstatus){
         return next(new ErrorResponse("siz admin emassiz", 400))
     }

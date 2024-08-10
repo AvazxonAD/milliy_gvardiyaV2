@@ -1160,8 +1160,8 @@ exports.createExcelForReport = asyncHandler(async (req, res, next) => {
             'Chegirma': contract.discount ? contract.discount : 0,
             'Chegirma summa': contract.discountmoney ? contract.discountmoney : 0,
             'Jami summa': contract.allmoney,
-            'Naqd': contract.ispay ? contract.allmoney : 0,
-            'Kridit': !contract.ispay ? contract.allmoney : 0,
+            'D-T': contract.ispay ? contract.allmoney : 0,
+            'KR-T': !contract.ispay ? contract.allmoney : 0,
             'Xodimlar soni': contract.allworkernumber,
             'boshlanish va tugash sanansi': contract.timelimit
         };
@@ -1185,8 +1185,8 @@ exports.createExcelForReport = asyncHandler(async (req, res, next) => {
         { width: 10 }, // Chegirma
         { width: 20 }, // Chegirma qilingan summa
         { width: 15 }, // Jami summa
-        { width: 15 }, // naqd 
-        { width: 15 }, // kridit 
+        { width: 15 }, // D-T 
+        { width: 15 }, // KR-T 
         { width: 15 }, // Xodimlar soni
         { width: 50 }  // boshlanish va tugash sanansi
     ];
