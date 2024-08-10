@@ -462,7 +462,9 @@ exports.getContractAndTasks = asyncHandler(async (req, res, next) => {
 
     let contract = contractQuery.rows[0];
     contract.contractdate = returnStringDate(contract.contractdate);
-    contract.validityperiod = returnStringDate(contract.validityperiod)
+    if(contract.validityperiod){
+        contract.validityperiod = returnStringDate(contract.validityperiod)
+    }
 
     let tasksQuery = await pool.query(
         `SELECT id, battalionname, taskdate, workernumber, inprogress, done, notdone 
