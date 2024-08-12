@@ -46,7 +46,7 @@ exports.getAllTasks = asyncHandler(async (req, res, next) => {
     let notPaySummma = await pool.query(
         `SELECT SUM(allmoney)
          FROM tasks
-         WHERE tasks.user_id = $1 AND ispay = $2
+         WHERE tasks.user_id = $1 AND (ispay = $2 OR ispay IS NULL) 
          `, 
         [req.params.id, false]
     );
@@ -120,7 +120,7 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
     let notPaySummma = await pool.query(
         `SELECT SUM(allmoney)
          FROM tasks
-         WHERE tasks.user_id = $1 AND ispay = $2 AND tasks.taskdate BETWEEN $3 AND $4
+         WHERE tasks.user_id = $1 AND (ispay = $2 OR ispay IS NULL) AND tasks.taskdate BETWEEN $3 AND $4
          `, 
         [req.params.id, false, date1, date2]
     );
@@ -218,7 +218,7 @@ exports.allTasks = asyncHandler(async (req, res, next) => {
             return task;
         });
 
-        let notPaySummmaResult = await pool.query(`SELECT SUM(allmoney) FROM tasks WHERE user_id = $1 AND ispay = $2`, [battalion.id, false]);
+        let notPaySummmaResult = await pool.query(`SELECT SUM(allmoney) FROM tasks WHERE user_id = $1 AND (ispay = $2 OR ispay IS NULL)`, [battalion.id, false]);
         let notPaySummma = parseFloat(notPaySummmaResult.rows[0].sum) || 0;
 
         let summaResult = await pool.query(`SELECT SUM(allmoney) FROM tasks WHERE user_id = $1 AND ispay = $2`, [battalion.id, true]);
@@ -283,7 +283,7 @@ exports.allTasksFilterByDate = asyncHandler(async (req, res, next) => {
             return task;
         });
 
-        let notPaySummmaResult = await pool.query(`SELECT SUM(allmoney) FROM tasks WHERE user_id = $1 AND ispay = $2 AND taskdate BETWEEN $3 AND $4
+        let notPaySummmaResult = await pool.query(`SELECT SUM(allmoney) FROM tasks WHERE user_id = $1 AND (ispay = $2 OR ispay IS NULL) AND taskdate BETWEEN $3 AND $4
         `, [battalion.id, false, date1, date2]);
         let notPaySummma = parseFloat(notPaySummmaResult.rows[0].sum) || 0;
 
