@@ -257,8 +257,8 @@ exports.getAllSpecialToExcel = asyncHandler(async (req, res, next) => {
             'Address': task.address,
             'Worker Number': task.workernumber,
             'Umumiy summa': task.allmoney,
-            'Naqd': task.pay ? task.allmoney : 0,
-            'Kridit': !task.pay ? task.allmoney : 0,
+            'Д-Т': task.pay ? task.allmoney : 0,
+            'КР-Т': !task.pay ? task.allmoney : 0,
         }));
 
         return [...tasks];
@@ -267,8 +267,8 @@ exports.getAllSpecialToExcel = asyncHandler(async (req, res, next) => {
     const worksheetData2 = resultArray.map(batalyon => ({
         'Batalyon': batalyon.batalyonName,
         'Umumiy summa': batalyon.allMoney,
-        'Naqd': batalyon.summa,
-        'Kridit': batalyon.notPaySumma,
+        'Д-Т': batalyon.summa,
+        'КР-Т': batalyon.notPaySumma,
     }));
 
     const worksheet = xlsx.utils.json_to_sheet(worksheetData);

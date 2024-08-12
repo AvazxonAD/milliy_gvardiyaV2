@@ -29,6 +29,7 @@ app.use('/address', require('./router/address.router'))
 app.use('/banks', require('./router/banks.router'))
 app.use('/mfo', require('./router/mfo.router'))
 app.use('/str', require('./router/str.router'))
+app.use('/batalon/tasks', require('./router/batalon.tasks.router'))
 
 
 app.use(require('./middleware/errorHandler'))
