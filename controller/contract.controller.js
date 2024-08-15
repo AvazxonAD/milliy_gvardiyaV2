@@ -625,7 +625,8 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
 
     return res.status(200).json({
         success: true,
-        data: formattedContracts
+        data: formattedContracts,
+        count: formattedContracts.length
     });
 });
 
@@ -724,6 +725,7 @@ exports.search = asyncHandler(async (req, res, next) => {
     return res.status(200).json({
         success: true,
         data: contractQuery.rows,
+        count: contractQuery.rows.length
     });
 
 })
@@ -1029,7 +1031,8 @@ exports.searchByNumber = asyncHandler(async (req, res, next) => {
 
     return res.status(200).json({
         success: true,
-        data: resultArray
+        data: resultArray,
+        count: resultArray.length
     })
 })
 
@@ -1081,7 +1084,8 @@ exports.searchByAddress = asyncHandler(async (req, res, next) => {
 
     return res.status(200).json({
         success: true,
-        data: resultArray
+        data: resultArray,
+        count: resultArray.length
     })
 })
 
