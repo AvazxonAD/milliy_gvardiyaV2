@@ -42,10 +42,10 @@ exports.createBatalyon = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("So'rovlar bo'sh qolishi mumkin emas", 400));
     }
 
-    /*const regex = /^(?=.*[a-zA-Z])(?=.*\d)[^\s]{8,}$/;
+    const regex = /^(?=.*[a-zA-Z])(?=.*\d)[^\s]{8,}$/;
     if(!regex.test(password)){
         return next(new ErrorResponse("password sodda bolmasligi kerak"))
-    }*/
+    }
 
     const user = await pool.query(`SELECT * FROM users WHERE username = $1`, [username.trim()]);
 
@@ -74,10 +74,10 @@ exports.update = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("Eski parol xato kiritildi", 400));
     }
     
-    /*const regex = /^(?=.*[a-zA-Z])(?=.*\d)[^\s]{8,}$/;
+    const regex = /^(?=.*[a-zA-Z])(?=.*\d)[^\s]{8,}$/;
     if(!regex.test(newPassword)){
         return next(new ErrorResponse("password sodda bolmasligi kerak"))
-    }*/
+    }
 
     if (username) {
         if (req.user.username !== username) {
@@ -115,10 +115,10 @@ exports.updateBatalyons = asyncHandler(async (req, res, next) => {
         }
     }
 
-    /*const regex = /^(?=.*[a-zA-Z])(?=.*\d)[^\s]{8,}$/;
+    const regex = /^(?=.*[a-zA-Z])(?=.*\d)[^\s]{8,}$/;
     if(!regex.test(newPassword)){
         return next(new ErrorResponse("password sodda bolmasligi kerak"))
-    }*/
+    }
     
     const updateUser = await pool.query(`UPDATE users SET username = $1, password = $2 WHERE id = $3 RETURNING *`, [username, newPassword, req.params.id]);
         
@@ -152,7 +152,6 @@ exports.getProfile = asyncHandler(async (req, res, next) => {
 
 // delete users 
 exports.deleteUser = asyncHandler(async (req, res, next) =>{
-    console.log(1)
     if(!req.user.adminstatus){
         return next(new ErrorResponse("siz admin emassiz", 400))
     }
