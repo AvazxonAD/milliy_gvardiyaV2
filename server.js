@@ -14,7 +14,6 @@ app.use(cors({
 
 require('./utils/createAdmin')()
 
-console.log('ok')
 
 app.use(express.static(path.join(__dirname, 'public')))
 
