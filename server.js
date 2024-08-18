@@ -32,6 +32,7 @@ app.use('/str', require('./router/str.router'))
 app.use('/batalon/tasks', require('./router/batalon.tasks.router'))
 app.use('/not/pay/contracts/', require('./router/not.pay.contracts.router'))
 
+
 app.use(require('./middleware/errorHandler'))
 
 const PORT = process.env.PORT || 3002
