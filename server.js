@@ -15,6 +15,8 @@ app.use(cors({
 require('./utils/createAdmin')()
 
 
+
+
 app.use(express.static(path.join(__dirname, 'public')))
 
 app.use('/auth', require('./router/auth.router'))
