@@ -8,9 +8,8 @@ app.use(express.urlencoded({extended: false}))
 
 require('dotenv').config()
 require('colors')
-app.use(cors({
-    origin: 'http://147.45.107.174:3000',
-  }))
+
+app.use(cors())
 
 require('./utils/createAdmin')()
 
