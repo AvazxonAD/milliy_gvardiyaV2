@@ -138,37 +138,37 @@ CREATE TABLE accountNumber(
 CREATE TABLE executors (
     id BIGSERIAL PRIMARY KEY,
     executor VARCHAR(500) NOT NULL,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+    user_id INTEGER
 );
 
 CREATE TABLE leaders (
     id BIGSERIAL PRIMARY KEY,
     leader VARCHAR(100) NOT NULL,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+    user_id INTEGER
 );
 
 CREATE TABLE addresses (
     id BIGSERIAL PRIMARY KEY,
     address VARCHAR(100) NOT NULL,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+    user_id INTEGER
 );
 
 CREATE TABLE banks (
     id BIGSERIAL PRIMARY KEY,
     bank VARCHAR(100) NOT NULL,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+    user_id INTEGER
 );
 
 CREATE TABLE mfos (
     id BIGSERIAL PRIMARY KEY,
     mfo VARCHAR(100) NOT NULL,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+    user_id INTEGER
 );
 
 CREATE TABLE strs (
     id BIGSERIAL PRIMARY KEY,
     str VARCHAR(100) NOT NULL,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+    user_id INTEGER
 );
 
 CREATE TABLE files (
