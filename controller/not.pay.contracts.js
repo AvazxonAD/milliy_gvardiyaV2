@@ -2,7 +2,7 @@ const asyncHandler = require("../middleware/asyncHandler");
 const ErrorResponse = require("../utils/errorResponse");
 const pool = require('../config/db');
 const { returnDate } = require("../utils/date.function");
-
+const xlsx = require('xlsx')
 // not pay contracts 
 exports.getAllContracts = asyncHandler(async (req, res, next) => {
     if (!req.user.adminstatus) {
@@ -99,4 +99,44 @@ exports.filterByDate = asyncHandler(async (req, res, next) => {
             battalions: battalions.rows
         }
     });
+})
+
+// import to excel 
+exports.importToExcel = asyncHandler(async (req, res, next) => {
+    let workers;
+    if (req.user.adminstatus) {
+        if (req.query.battalion) {
+            workers = await pool.query(`SELECT workers.fio, users.username FROM workers JOIN users ON workers.user_id = users.id WHERE workers.user_id = $1`, [req.query.id]);
+        } else {
+            workers = await pool.query(`SELECT workers.fio, users.username FROM workers JOIN users ON workers.user_id = users.id WHERE admin_id = $1`, [req.user.id]);
+        }
+    } else {
+        workers = await pool.query(`SELECT workers.fio, users.username FROM workers JOIN users ON workers.user_id = users.id WHERE users.id = $1`, [req.user.id]);
+    }
+
+    const worksheetData = workers.rows.map(data => ({
+        'Xodim': data.fio,
+        'Batalyon': data.username
+    }));
+
+    const worksheet = xlsx.utils.json_to_sheet(worksheetData);
+    worksheet['!cols'] = [{ width: 80 }, { width: 80 }];
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Xodimlar');
+
+    const buffer = xlsx.write(workbook, { type: 'buffer' });
+    const filename = `${Date.now()}_data.xlsx`;
+
+    await pool.query(`INSERT INTO files (filename, file_data) VALUES ($1, $2)`, [filename, buffer]);
+
+    const fileResult = await pool.query(`SELECT filename, file_data FROM files WHERE filename = $1`, [filename]);
+
+    if (fileResult.rows.length === 0) {
+        return res.status(404).json({ message: 'Fayl topilmadi' });
+    }
+
+    const { file_data } = fileResult.rows[0];
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(file_data);
 })
