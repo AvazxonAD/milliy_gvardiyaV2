@@ -32,11 +32,43 @@ exports.postVideoInfo = asyncHandler(async (req, res, next) => {
 // get all infos 
 exports.getAllInfos = asyncHandler(async (req, res, next) => {
     const status = req.user.adminstatus
-    const infos = await pool.query(`SELECT * FROM infos WHERE admin_status = $1`, [status])
+    const infos = await pool.query(`SELECT id, title FROM infos WHERE admin_status = $1`, [status])
     res.status(200).json({
         success: true,
         data: infos.rows
     })
+})
+
+// get element by id 
+exports.getElementById = asyncHandler(async (req, res, next) => {
+    const range = req.headers.range
+    if(!range){
+        return next(new ErrorResponse('Range parametr is missing', 400))
+    }
+
+    const info = await pool.query(`SELECT * FROM infos WHERE id = $1`, [req.params.id])
+    if(!info.rows[0]){
+        return next(new ErrorResponse('server xatolik', 500))
+    }
+    const pathFile = path.join(__dirname, '../public/', info.rows[0].url);
+
+    const sizeOfVideo = fs.statSync(pathFile).size
+
+    const CHUNK_SIZE = 1000000
+    const start = Number(range.replace(/\D/g, ""))
+    const end = Math.min(start + CHUNK_SIZE, sizeOfVideo - 1)
+
+    const contentlength = end - start + 1
+
+    const headers = {
+        "Content-Range": `bytes ${start}-${end}/${sizeOfVideo} `,
+        "Accept-Range": "bytes",
+        "Content-length": contentlength,
+        "Content-type": "video/mp4"
+    }
+
+    const videoStream = fs.createReadStream(pathFile, {start, end})
+    videoStream.pipe(res)
 })
 
 // delete video 
