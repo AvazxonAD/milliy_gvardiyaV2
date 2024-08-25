@@ -41,35 +41,43 @@ exports.getAllInfos = asyncHandler(async (req, res, next) => {
 
 // get element by id 
 exports.getElementById = asyncHandler(async (req, res, next) => {
-    const range = req.headers.range
-    if(!range){
-        return next(new ErrorResponse('Range parametr is missing', 400))
+    const range = req.headers.range;
+    if (!range) {
+        return next(new ErrorResponse('Range parametr is missing', 400));
     }
 
-    const info = await pool.query(`SELECT * FROM infos WHERE id = $1`, [req.params.id])
-    if(!info.rows[0]){
-        return next(new ErrorResponse('server xatolik', 500))
+    const info = await pool.query('SELECT * FROM infos WHERE id = $1', [req.params.id]);
+    if (!info.rows[0]) {
+        return next(new ErrorResponse('Video topilmadi', 404));
     }
+
     const pathFile = path.join(__dirname, '../public/', info.rows[0].url);
+    const sizeOfVideo = fs.statSync(pathFile).size;
 
-    const sizeOfVideo = fs.statSync(pathFile).size
+    const CHUNK_SIZE = 1000000; // 1 MB
+    const parts = range.replace(/bytes=/, "").split("-");
+    const start = parseInt(parts[0], 10);
+    const end = Math.min(parseInt(parts[1], 10) || start + CHUNK_SIZE - 1, sizeOfVideo - 1);
 
-    const CHUNK_SIZE = 1000000
-    const start = Number(range.replace(/\D/g, ""))
-    const end = Math.min(start + CHUNK_SIZE, sizeOfVideo - 1)
-
-    const contentlength = end - start + 1
+    const contentLength = end - start + 1;
 
     const headers = {
-        "Content-Range": `bytes ${start}-${end}/${sizeOfVideo} `,
-        "Accept-Range": "bytes",
-        "Content-length": contentlength,
-        "Content-type": "video/mp4"
-    }
+        "Content-Range": `bytes ${start}-${end}/${sizeOfVideo}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": contentLength,
+        "Content-Type": "video/mp4"
+    };
 
-    const videoStream = fs.createReadStream(pathFile, {start, end})
-    videoStream.pipe(res)
-})
+    res.writeHead(206, headers); // 206 Partial Content
+
+    const videoStream = fs.createReadStream(pathFile, { start, end });
+    videoStream.on('error', (err) => {
+        next(new ErrorResponse('Faylni o\'qishda xatolik', 500));
+    });
+
+    videoStream.pipe(res);
+});
+
 
 // delete video 
 exports.deleteVideo = asyncHandler(async (req, res, next) => {
