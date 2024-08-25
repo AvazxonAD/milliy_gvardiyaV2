@@ -11,6 +11,8 @@ require('colors')
 
 app.use(cors())
 
+app.use(express.static(path.join(__dirname, './public')));
+
 require('./utils/createAdmin')()
 
 
@@ -35,6 +37,7 @@ app.use('/mfo', require('./router/mfo.router'))
 app.use('/str', require('./router/str.router'))
 app.use('/batalon/tasks', require('./router/batalon.tasks.router'))
 app.use('/not/pay/contracts/', require('./router/not.pay.contracts.router'))
+app.use('/info', require('./router/info.router'))
 
 
 app.use(require('./middleware/errorHandler'))

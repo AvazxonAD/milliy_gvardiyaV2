@@ -179,3 +179,11 @@ CREATE TABLE files (
 );
 
 CREATE EXTENSION unaccent;
+
+CREATE TABLE infos (
+    id BIGSERIAL PRIMARY KEY, 
+    url VARCHAR(1000) NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    descr VARCHAR(300) NOT NULl,
+    admin_status BOOLEAN NOT NULL
+);
