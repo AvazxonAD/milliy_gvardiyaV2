@@ -78,6 +78,14 @@ exports.getElementById = asyncHandler(async (req, res, next) => {
     videoStream.pipe(res);
 });
 
+// get element by id info 
+exports.getElementByIdInfo = asyncHandler(async (req, res, next) => {
+    const info = await pool.query(`SELECT * FROM infos WHERE id = $1`, [req.params.id])
+    res.status(200).json({
+        success: true,
+        data: info.rows[0]
+    })
+})
 
 // delete video 
 exports.deleteVideo = asyncHandler(async (req, res, next) => {
