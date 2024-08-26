@@ -45,11 +45,14 @@ exports.getElementById = asyncHandler(async (req, res, next) => {
     const { rows } = await pool.query('SELECT * FROM infos WHERE id = $1', [id]);
 
     if (!rows[0]) {
-        return next(new ErrorResponse('Video topilmadi', 404)); // yoki next() funksiyasi orqali boshqa xato
+        return next(new ErrorResponse('Video topilmadi', 404)); 
     }
 
-    const pathFile = path.join(__dirname, '../public/', rows[0].url);
-    res.sendFile(pathFile);
+    return res.status(200).json({
+        success: true,
+        data: rows[0].url
+    })
+    
 });
 
 // get element by id info 
