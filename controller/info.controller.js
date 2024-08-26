@@ -32,7 +32,7 @@ exports.postVideoInfo = asyncHandler(async (req, res, next) => {
 // get all infos 
 exports.getAllInfos = asyncHandler(async (req, res, next) => {
     const status = req.user.adminstatus
-    const infos = await pool.query(`SELECT * FROM infos WHERE admin_status = $1`, [status])
+    const infos = await pool.query(`SELECT id, title FROM infos WHERE admin_status = $1`, [status])
     res.status(200).json({
         success: true,
         data: infos.rows
